@@ -1,0 +1,42 @@
+# ---- Python (dsec-api) ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Node / Next.js (dsec-website, dsec-app) ----
+node_modules/
+.next/
+out/
+build/
+.turbo/
+*.tsbuildinfo
+
+# ---- Env / secrets (NEVER commit real secrets) ----
+# Note: .env.example is intentionally NOT ignored — it is committed.
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# ---- Local databases ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Vercel ----
+.vercel/
+
+# ---- OS / editors ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

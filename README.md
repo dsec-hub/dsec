@@ -102,5 +102,6 @@ are gitignored.
 
 Both Next.js apps and the FastAPI app target **Vercel**. `dsec-app` needs
 `DATABASE_URL` (pooled) + `AUTH_SECRET`; run migrations as a deploy step (or set
-`RUN_MIGRATIONS_ON_STARTUP=true` on `dsec-api`). See `HANDOVER.md` for the
-non-technical runbook.
+`RUN_MIGRATIONS_ON_STARTUP=true` on `dsec-api`). See **`DEPLOY.md`** for the
+step-by-step deploy runbook, and `HANDOVER.md` for the non-technical operations
+guide.

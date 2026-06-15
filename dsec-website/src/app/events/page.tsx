@@ -4,7 +4,7 @@ import { EventCard, SectionHeading, ComingSoon } from "@/components/ui";
 import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
 import { eventsSchema } from "@/lib/schema";
-import { events } from "@/lib/content";
+import { getEvents } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Events - DSEC Hackathons & Workshops at Deakin",
@@ -25,10 +25,9 @@ export const metadata: Metadata = {
   },
 };
 
-// TEMP: flip to true to show real event cards once the events API is wired up.
-const showContent: boolean = false;
-
-export default function EventsPage() {
+export default async function EventsPage() {
+  const events = await getEvents();
+  const showContent = events.length > 0;
   const past = events.filter((e) => e.status === "past");
   const upcoming = events.filter((e) => e.status === "upcoming");
 
@@ -66,7 +65,7 @@ export default function EventsPage() {
             Free for club members, paid entry for non-members. Register and
             we&apos;ll save you a seat.
           </SectionHeading>
-          <div className="stagger mt-8 grid gap-5">
+          <div className="stagger mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map((e) => (
               <EventCard key={e.slug} event={e} />
             ))}
@@ -74,16 +73,18 @@ export default function EventsPage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <ComingSoon
-          label="updating soon"
-          title="Events are landing here shortly."
-          duck="duck-rocket"
-        >
-          We&apos;re wiring up the events feed right now. Check back soon, or hop
-          on Discord to hear about the next one first.
-        </ComingSoon>
-      </section>
+      {!showContent && (
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <ComingSoon
+            label="updating soon"
+            title="Events are landing here shortly."
+            duck="duck-rocket"
+          >
+            We&apos;re wiring up the events feed right now. Check back soon, or hop
+            on Discord to hear about the next one first.
+          </ComingSoon>
+        </section>
+      )}
 
       {/* Past events emphasise scale + outcomes - sponsor proof */}
       {/* TEMP: past event cards hidden while the events API is wired up. */}
@@ -92,23 +93,24 @@ export default function EventsPage() {
           <SectionHeading eyebrow="Already delivered" title="The proof we deliver.">
             Scale and outcomes first. This is what makes sponsorship credible.
           </SectionHeading>
-          {showContent && (
-            <div className="stagger mt-8 grid gap-5">
+          {past.length > 0 ? (
+            <div className="stagger mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {past.map((e) => (
                 <EventCard key={e.slug} event={e} />
               ))}
             </div>
+          ) : (
+            <div className="mt-8">
+              <ComingSoon
+                label="updating soon"
+                title="Our event recaps are on the way."
+                duck="duck-trophy"
+              >
+                Photos, attendance and outcomes from past events will appear here
+                once the API is connected.
+              </ComingSoon>
+            </div>
           )}
-          <div className="mt-8">
-            <ComingSoon
-              label="updating soon"
-              title="Our event recaps are on the way."
-              duck="duck-trophy"
-            >
-              Photos, attendance and outcomes from past events will appear here
-              once the API is connected.
-            </ComingSoon>
-          </div>
           <p className="mt-8 text-paper/75">
             These events are where members{" "}
             <Link href="/projects" className="font-bold text-blue hover:underline">

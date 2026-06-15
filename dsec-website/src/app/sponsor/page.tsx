@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { SponsorForm } from "@/components/sponsor-form";
 import { SponsorTiers } from "@/components/sponsor-tiers";
 import { BookMeetingButton } from "@/components/book-meeting-button";
-import { SectionHeading } from "@/components/ui";
+import { SectionHeading, EventCard } from "@/components/ui";
 import { PixelDuck } from "@/components/pixel-duck";
-import { stats, tiers, projects, events } from "@/lib/content";
+import { stats, projects } from "@/lib/content";
+import { getEvents, getPackages } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Sponsor DSEC - Reach Deakin Software Talent",
@@ -26,8 +27,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function SponsorPage() {
-  const flagship = events.filter((e) => e.status === "past");
+export default async function SponsorPage() {
+  // Live events when present, else the static proof list (same fallback as the
+  // rest of the site), so the cards always link to a real detail page.
+  const [flagship, tiers] = await Promise.all([
+    getEvents().then((evts) => evts.filter((e) => e.status === "past").slice(0, 2)),
+    getPackages(),
+  ]);
 
   return (
     <div>
@@ -121,23 +127,10 @@ export default function SponsorPage() {
             ))}
           </div>
 
-          {/* flagship events as social proof */}
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
+          {/* flagship events as social proof — same card style as the rest of the site */}
+          <div className="stagger mt-6 grid gap-5 sm:grid-cols-2">
             {flagship.map((e) => (
-              <div key={e.slug} className="pixel-card flex gap-4 p-5">
-                <div className="grid w-28 shrink-0 place-items-center border-[3px] border-paper bg-yellow p-3">
-                  <PixelDuck name={e.image as never} alt="" size={84} />
-                </div>
-                <div>
-                  <h3 className="font-display text-xl font-bold">{e.title}</h3>
-                  {e.outcome && (
-                    <p className="mt-1 font-mono text-sm font-bold text-blue">
-                      {e.outcome}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-paper/75">{e.blurb}</p>
-                </div>
-              </div>
+              <EventCard key={e.slug} event={e} />
             ))}
           </div>
 

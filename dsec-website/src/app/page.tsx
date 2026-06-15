@@ -4,15 +4,17 @@ import { Stat, ProjectCard, EventCard, SectionHeading, ComingSoon } from "@/comp
 import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
 import { organizationSchema } from "@/lib/schema";
-import { stats, projects, events, site } from "@/lib/content";
+import { getEvents, getProjects } from "@/lib/api";
+import { stats, site } from "@/lib/content";
 
-// TEMP: flip to true to show real project/event cards once the API is wired up.
-const showContent: boolean = false;
-
-export default function HomePage() {
-  const featuredProjects = projects.slice(0, 3);
-  const pastEvent = events.find((e) => e.status === "past")!;
+export default async function HomePage() {
+  const [allProjects, allEvents] = await Promise.all([getProjects(), getEvents()]);
+  const featuredProjects = allProjects.slice(0, 3);
+  const events = allEvents;
+  const pastEvent = events.find((e) => e.status === "past");
   const upcoming = events.find((e) => e.status === "upcoming");
+  const showProjects = featuredProjects.length > 0;
+  const showEvents = Boolean(pastEvent || upcoming);
 
   return (
     <div>
@@ -70,24 +72,24 @@ export default function HomePage() {
               </span>
             </Link>
           </div>
-          {/* TEMP: project cards hidden while the projects API is wired up. */}
-          {showContent && (
+          {showProjects ? (
             <div className="stagger mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {featuredProjects.map((p) => (
                 <ProjectCard key={p.slug} project={p} />
               ))}
             </div>
+          ) : (
+            <div className="mt-8">
+              <ComingSoon
+                label="updating soon"
+                title="Member projects are being added soon."
+                duck="duck-laptop"
+              >
+                We&apos;re wiring up the projects feed. Real repos and stacks will
+                show up here shortly.
+              </ComingSoon>
+            </div>
           )}
-          <div className="mt-8">
-            <ComingSoon
-              label="updating soon"
-              title="Member projects are being added soon."
-              duck="duck-laptop"
-            >
-              We&apos;re wiring up the projects feed. Real repos and stacks will
-              show up here shortly.
-            </ComingSoon>
-          </div>
         </div>
       </section>
 
@@ -107,23 +109,23 @@ export default function HomePage() {
             </span>
           </Link>
         </div>
-        {/* TEMP: event cards hidden while the events API is wired up. */}
-        {showContent && (
-          <div className="stagger mt-8 grid gap-5">
-            <EventCard event={pastEvent} />
+        {showEvents ? (
+          <div className="stagger mt-8 grid gap-5 sm:grid-cols-2">
             {upcoming && <EventCard event={upcoming} />}
+            {pastEvent && <EventCard event={pastEvent} />}
+          </div>
+        ) : (
+          <div className="mt-8">
+            <ComingSoon
+              label="updating soon"
+              title="Events are landing here shortly."
+              duck="duck-rocket"
+            >
+              We&apos;re wiring up the events feed. Hop on Discord to hear about
+              the next one first.
+            </ComingSoon>
           </div>
         )}
-        <div className="mt-8">
-          <ComingSoon
-            label="updating soon"
-            title="Events are landing here shortly."
-            duck="duck-rocket"
-          >
-            We&apos;re wiring up the events feed. Hop on Discord to hear about
-            the next one first.
-          </ComingSoon>
-        </div>
       </section>
 
       {/* Final fork - restate the two paths, kept side-by-side, never merged */}

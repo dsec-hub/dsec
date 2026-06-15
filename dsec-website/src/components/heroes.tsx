@@ -79,31 +79,23 @@ export function HeroConsole() {
 
       {/* FULL-BLEED party banner - a ">-<" valley scene that frames the copy
           above: duck crowds cluster left + right, the open centre keeps the
-          headline breathing. Full-res, seamless looping animation. Served
-          opaque with the page background (#0a0a0a) baked in - transparent
-          HEVC alpha is unreliable in Safari, so we composite ahead of time:
-          VP9 WebM + H.264 MP4 (universal), GIF as the last-resort fallback. */}
+          headline breathing. Served as a TRANSPARENT animated WebP so the page's
+          pixel-grid + scanlines show through behind the ducks - no baked-in
+          black rectangle. Animated WebP carries a real alpha channel and loops
+          natively in Chrome, Safari 16+ and Firefox; the (also transparent) GIF
+          is the last-resort fallback. We use WebP rather than <video> because
+          transparent VP9/HEVC alpha is unreliable across those browsers. */}
       <div className="-mt-6 -mb-1 w-full sm:-mt-12 sm:-mb-1">
-        <video
-          width={1280}
-          height={350}
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster="/pixel/hero-party-loop-poster.webp"
-          aria-label="Wide pixel-art scene of a DSEC tech-nerd party: yellow ducks in groups chatting and sipping drinks, sharing pizza, and coding on glowing laptops, gently bobbing in a looped animation"
-          className="pixelated pointer-events-none mx-auto block h-auto w-full select-none"
-        >
-          <source src="/pixel/hero-party-loop.webm" type="video/webm" />
-          <source src="/pixel/hero-party-loop.mp4" type="video/mp4" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+        <picture>
+          <source srcSet="/pixel/hero-party-loop.webp" type="image/webp" />
           <img
             src="/pixel/hero-party-loop.gif"
-            alt="Pixel-art scene of DSEC ducks chatting, sharing pizza and coding on laptops"
-            className="pixelated mx-auto block h-auto w-full select-none"
+            width={1280}
+            height={350}
+            alt="Wide pixel-art scene of a DSEC tech-nerd party: yellow ducks in groups chatting and sipping drinks, sharing pizza, and coding on glowing laptops, gently bobbing in a looped animation"
+            className="pixelated pointer-events-none mx-auto block h-auto w-full select-none"
           />
-        </video>
+        </picture>
       </div>
     </section>
   );

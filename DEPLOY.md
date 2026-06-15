@@ -1,5 +1,9 @@
 # Deploying
 
+> **For the full project** (all three apps, every env var, domains/DNS, API keys,
+> Gmail Apps Scripts, and mailbox wiring) see **[`HOSTING.md`](./HOSTING.md)**. This
+> file is the quick dashboard-only path.
+
 How to put the apps on **Vercel**. `dsec-app` (the dashboard) is the priority —
 it's fully built and, because Neon already holds the schema, sample data, and
 your exec login, it works the moment it's deployed.
@@ -15,7 +19,7 @@ Neon console → your project → **Connection Details** → toggle **Pooled
 connection** ON → copy. It has `-pooler` in the host:
 
 ```
-postgresql://neondb_owner:<PASSWORD>@ep-wandering-tree-a7b6t8hw-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require
+postgresql://neondb_owner:<PASSWORD>@ep-xxx-pooler.<region>.aws.neon.tech/neondb?sslmode=require
 ```
 
 The `-pooler` host is what keeps serverless functions from exhausting Neon's

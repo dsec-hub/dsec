@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { accentBg, type Project, type ClubEvent } from "@/lib/content";
+import { accentBg, ticketPriceSummary, type Project, type ClubEvent } from "@/lib/content";
 import { PixelDuck, type DuckName } from "@/components/pixel-duck";
 
 /* ---------- Section heading ---------- */
@@ -81,103 +81,189 @@ export function ComingSoon({
   );
 }
 
-/* ---------- Project card ---------- */
-export function ProjectCard({ project }: { project: Project }) {
+/* ---------- Shared content card ----------
+   ONE card style for both events and projects, used on the home, events,
+   projects and sponsor pages. The whole card links to its detail page via an
+   accessible stretched-link (the title's `after:absolute inset-0` overlay);
+   footer actions sit above it with `relative z-10` so they stay clickable. */
+
+type CardAction = { label: string; href: string; tone: "blue" | "pink" | "mint"; external?: boolean };
+
+const actionTone: Record<CardAction["tone"], string> = {
+  blue: "text-blue",
+  pink: "text-pink",
+  mint: "text-mint",
+};
+
+export function ContentCard({
+  href,
+  title,
+  blurb,
+  accent,
+  imageUrl,
+  sprite,
+  spriteBob = false,
+  badge,
+  meta,
+  outcome,
+  tags,
+  actions,
+}: {
+  href: string;
+  title: string;
+  blurb?: string;
+  accent: "blue" | "pink" | "yellow" | "mint";
+  imageUrl?: string;
+  sprite: DuckName;
+  spriteBob?: boolean;
+  badge?: { text: string; className?: string };
+  meta?: string;
+  outcome?: string;
+  tags?: string[];
+  actions?: CardAction[];
+}) {
+  const acts = (actions ?? []).filter(Boolean);
   return (
-    <article className="pixel-card pixel-hover group flex flex-col overflow-hidden">
-      <div
-        className={`relative grid place-items-center border-b-[3px] border-paper ${accentBg[project.accent]} px-6 py-8`}
-      >
-        <PixelDuck
-          name={project.image}
-          alt=""
-          size={120}
-          className="drop-shadow-[3px_3px_0_rgba(24,20,37,0.25)] transition-transform duration-200 ease-[var(--ease-out-strong)] group-hover:scale-110"
-        />
-        <span className="pixel-tag absolute left-3 top-3 !bg-panel">
-          {project.slug}
-        </span>
+    <article className="pixel-card pixel-hover group relative flex flex-col overflow-hidden">
+      <div className="relative border-b-[3px] border-paper">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={title}
+            className="aspect-video w-full object-cover transition-transform duration-200 ease-[var(--ease-out-strong)] group-hover:scale-105"
+          />
+        ) : (
+          <div className={`grid aspect-video place-items-center ${accentBg[accent]} px-6`}>
+            <PixelDuck
+              name={sprite}
+              alt=""
+              size={120}
+              bob={spriteBob}
+              className="drop-shadow-[3px_3px_0_rgba(24,20,37,0.25)] transition-transform duration-200 ease-[var(--ease-out-strong)] group-hover:scale-110"
+            />
+          </div>
+        )}
+        {badge && (
+          <span className={`pixel-tag absolute left-3 top-3 !bg-panel ${badge.className ?? ""}`}>
+            {badge.text}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-display text-2xl font-bold">{project.title}</h3>
-        <p className="mt-1.5 text-paper/75">{project.blurb}</p>
-        <p className="mt-3 font-mono text-xs text-paper/55">
-          built by {project.builtBy}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {project.stack.map((t) => (
-            <span key={t} className="pixel-tag !text-[0.65rem]">
-              {t}
-            </span>
-          ))}
-        </div>
-        <div className="mt-4 flex gap-3 border-t-[2px] border-dashed border-paper/30 pt-4">
-          {project.repo && (
-            <a
-              href={project.repo}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-block font-mono text-sm font-bold text-blue transition-transform duration-150 hover:-translate-y-0.5 hover:underline"
-            >
-              repo ↗
-            </a>
-          )}
-          {project.live && (
-            <a
-              href={project.live}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-block font-mono text-sm font-bold text-pink transition-transform duration-150 hover:-translate-y-0.5 hover:underline"
-            >
-              live ↗
-            </a>
-          )}
-        </div>
+        {meta && <p className="font-mono text-xs text-paper/60">{meta}</p>}
+        <h3 className="mt-1 font-display text-2xl font-bold">
+          <Link
+            href={href}
+            className="after:absolute after:inset-0 after:content-[''] hover:underline"
+          >
+            {title}
+          </Link>
+        </h3>
+        {blurb && <p className="mt-1.5 text-paper/75">{blurb}</p>}
+        {outcome && (
+          <p className="mt-3 inline-block border-l-4 border-yellow bg-yellow/15 px-3 py-1.5 font-mono text-sm font-bold">
+            {outcome}
+          </p>
+        )}
+        {tags && tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {tags.map((t) => (
+              <span key={t} className="pixel-tag !text-[0.65rem]">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+        {acts.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-4 border-t-[2px] border-dashed border-paper/30 pt-4">
+            {acts.map((a) =>
+              a.external ? (
+                <a
+                  key={a.label}
+                  href={a.href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`relative z-10 inline-block font-mono text-sm font-bold transition-transform duration-150 hover:-translate-y-0.5 hover:underline ${actionTone[a.tone]}`}
+                >
+                  {a.label}
+                </a>
+              ) : (
+                <Link
+                  key={a.label}
+                  href={a.href}
+                  className={`relative z-10 inline-block font-mono text-sm font-bold transition-transform duration-150 hover:-translate-y-0.5 hover:underline ${actionTone[a.tone]}`}
+                >
+                  {a.label}
+                </Link>
+              ),
+            )}
+          </div>
+        )}
       </div>
     </article>
   );
 }
 
-/* ---------- Event card ---------- */
+const isExternal = (href: string) => /^https?:\/\//i.test(href);
+
+/* ---------- Project card (wraps ContentCard) ---------- */
+export function ProjectCard({ project }: { project: Project }) {
+  const actions: CardAction[] = [];
+  if (project.repo) actions.push({ label: "repo ↗", href: project.repo, tone: "blue", external: true });
+  if (project.live) actions.push({ label: "live ↗", href: project.live, tone: "pink", external: true });
+  return (
+    <ContentCard
+      href={`/projects/${project.slug}`}
+      title={project.title}
+      blurb={project.blurb}
+      accent={project.accent}
+      imageUrl={project.imageUrl}
+      sprite={project.image}
+      badge={{ text: project.slug }}
+      meta={project.builtBy ? `built by ${project.builtBy}` : undefined}
+      tags={project.stack}
+      actions={actions}
+    />
+  );
+}
+
+/* ---------- Event card (wraps ContentCard) ---------- */
 export function EventCard({ event }: { event: ClubEvent }) {
   const isUpcoming = event.status === "upcoming";
+  // Ticketing is only meaningful while upcoming — past events never link out.
+  const ticket = isUpcoming ? event.ticketUrl ?? event.registerUrl : undefined;
+  const actions: CardAction[] = [];
+  if (ticket) {
+    actions.push({
+      label: "Get tickets ↗",
+      href: ticket,
+      tone: "pink",
+      external: isExternal(ticket),
+    });
+  }
+  // Compact chips: ticket pricing (upcoming only) + catering.
+  const tags: string[] = [];
+  const price = isUpcoming ? ticketPriceSummary(event.ticketTiers) : null;
+  if (price) tags.push(price === "Free" ? "Free entry" : `Tickets ${price}`);
+  if (event.foodIncluded) tags.push("🍕 Food included");
   return (
-    <article className="pixel-card pixel-hover group flex flex-col gap-4 p-5 sm:flex-row sm:items-start">
-      <div
-        className={`grid w-full shrink-0 place-items-center border-[3px] border-paper ${accentBg[event.accent]} p-4 sm:w-36`}
-      >
-        <PixelDuck
-          name={event.image}
-          alt=""
-          size={96}
-          bob={isUpcoming}
-          className="transition-transform duration-200 ease-[var(--ease-out-strong)] group-hover:scale-110"
-        />
-      </div>
-      <div className="flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`pixel-tag ${isUpcoming ? "!bg-mint text-ink" : "!bg-panel-2"}`}
-          >
-            {isUpcoming ? "● upcoming" : "✓ past"}
-          </span>
-          <span className="font-mono text-xs text-paper/60">{event.date}</span>
-        </div>
-        <h3 className="mt-2 font-display text-2xl font-bold">{event.title}</h3>
-        <p className="mt-1.5 text-paper/75">{event.blurb}</p>
-        {event.outcome && (
-          <p className="mt-3 inline-block border-l-4 border-yellow bg-yellow/15 px-3 py-1.5 font-mono text-sm font-bold">
-            {event.outcome}
-          </p>
-        )}
-        {isUpcoming && event.registerUrl && (
-          <div className="mt-4">
-            <Link href={event.registerUrl} className="btn btn-pink !py-2.5 !text-sm">
-              Register for {event.title}
-            </Link>
-          </div>
-        )}
-      </div>
-    </article>
+    <ContentCard
+      href={`/events/${event.slug}`}
+      title={event.title}
+      blurb={event.blurb}
+      accent={event.accent}
+      imageUrl={event.imageUrl}
+      sprite={event.image}
+      spriteBob={isUpcoming}
+      badge={{
+        text: isUpcoming ? "● upcoming" : "✓ past",
+        className: isUpcoming ? "!bg-mint !text-ink" : "",
+      }}
+      meta={event.date}
+      outcome={event.outcome}
+      tags={tags.length ? tags : undefined}
+      actions={actions}
+    />
   );
 }

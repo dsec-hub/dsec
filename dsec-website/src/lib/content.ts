@@ -8,6 +8,20 @@ import type { DuckName } from "@/components/pixel-duck";
 
 export const PLACEHOLDER = "PLACEHOLDER";
 
+/**
+ * One uploaded image from the API media feed. `role` decides where it renders:
+ * `banner` (wide hero), `poster` (portrait key art), or `image` (gallery).
+ * `webp` is for display, `png` for download.
+ */
+export type MediaItem = {
+  role: "image" | "poster" | "banner";
+  webp: string;
+  png: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+};
+
 export const site = {
   name: "DSEC",
   longName: "Deakin Software Engineering Club",
@@ -42,12 +56,20 @@ export type Project = {
   slug: string;
   title: string;
   blurb: string;
-  builtBy: string;
+  builtBy?: string;
   stack: string[];
   image: DuckName; // pixel sprite name (see PixelDuck), resolved to /public/pixel
   accent: "blue" | "pink" | "yellow" | "mint";
   repo?: string;
   live?: string;
+  description?: string; // longer body for the detail page
+  status?: string;
+  category?: string;
+  imageUrl?: string; // real uploaded image (WebP) from dsec-api; overrides the sprite
+  downloadUrl?: string; // same image as PNG
+  bannerUrl?: string; // wide hero image (WebP) for the detail page
+  posterUrl?: string; // portrait key-art (WebP) for the detail page
+  gallery?: MediaItem[]; // extra images for the detail-page gallery
 };
 
 /** PLACEHOLDER: replace with 3–4 real member projects + real links/screenshots. */
@@ -111,7 +133,47 @@ export type ClubEvent = {
   image: DuckName;
   accent: "blue" | "pink" | "yellow" | "mint";
   registerUrl?: string; // for upcoming
+  ticketUrl?: string; // public buy-tickets / RSVP link (from the API)
+  ticketTiers?: { label: string; price: number | null }[]; // per-audience pricing (upcoming only)
+  foodIncluded?: boolean; // catering provided at the event
+  venue?: string;
+  format?: string;
+  type?: string;
+  endDate?: string; // ISO end date, when multi-day
+  imageUrl?: string; // real uploaded image (WebP) from dsec-api; overrides the sprite
+  downloadUrl?: string; // same image as PNG
+  bannerUrl?: string; // wide hero image (WebP) for the detail page
+  posterUrl?: string; // portrait key-art (WebP) for the detail page
+  gallery?: MediaItem[]; // extra images for the detail-page gallery
 };
+
+/** Format one tier's price for display: null → "—", 0 → "Free", else AUD. */
+export function formatTicketPrice(price: number | null): string {
+  if (price == null) return "—";
+  if (price === 0) return "Free";
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+}
+
+/** A compact one-line ticket-price summary for cards (null when no pricing). */
+export function ticketPriceSummary(
+  tiers?: { label: string; price: number | null }[],
+): string | null {
+  const prices = (tiers ?? [])
+    .map((t) => t.price)
+    .filter((p): p is number => p != null);
+  if (prices.length === 0) return null;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  if (max === 0) return "Free";
+  if (min === 0) return `Free–${formatTicketPrice(max)}`;
+  if (min === max) return formatTicketPrice(min);
+  return `${formatTicketPrice(min)}–${formatTicketPrice(max)}`;
+}
 
 /** PLACEHOLDER: confirm dates, attendance and registration links. */
 export const events: ClubEvent[] = [

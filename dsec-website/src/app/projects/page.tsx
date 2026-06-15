@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProjectCard, SectionHeading, ComingSoon } from "@/components/ui";
 import { PixelDuck } from "@/components/pixel-duck";
-import { projects } from "@/lib/content";
+import { getProjects } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Projects - Real Software by DSEC Members",
@@ -23,10 +23,10 @@ export const metadata: Metadata = {
   },
 };
 
-// TEMP: flip to true to show real project cards once the projects API is wired up.
-const showContent: boolean = false;
+export default async function ProjectsPage() {
+  const projects = await getProjects();
+  const showContent = projects.length > 0;
 
-export default function ProjectsPage() {
   return (
     <div>
       <section className="border-b-[3px] border-paper bg-mint text-ink">
@@ -51,22 +51,22 @@ export default function ProjectsPage() {
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         {/* TEMP: project cards hidden while the projects API is wired up.
             Restore the grid below (and remove the ComingSoon) once populated. */}
-        {showContent && (
+        {showContent ? (
           <div className="stagger grid gap-5 sm:grid-cols-2">
             {projects.map((p) => (
               <ProjectCard key={p.slug} project={p} />
             ))}
           </div>
+        ) : (
+          <ComingSoon
+            label="updating soon"
+            title="Member projects are being added soon."
+            duck="duck-laptop"
+          >
+            We&apos;re hooking up the projects feed right now. The repos, stacks
+            and the people who shipped them will show up here shortly.
+          </ComingSoon>
         )}
-
-        <ComingSoon
-          label="updating soon"
-          title="Member projects are being added soon."
-          duck="duck-laptop"
-        >
-          We&apos;re hooking up the projects feed right now. The repos, stacks
-          and the people who shipped them will show up here shortly.
-        </ComingSoon>
 
         <div className="mt-8 border-[3px] border-paper bg-panel p-5 shadow-[4px_4px_0_0_var(--color-blue)] sm:flex sm:items-center sm:justify-between sm:gap-6">
           <p className="text-paper/80">

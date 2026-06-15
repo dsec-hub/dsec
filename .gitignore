@@ -40,3 +40,14 @@ build/
 .vscode/
 *.swp
 *~
+
+# ---- Local AI-assistant / agent tooling (not part of the project) ----
+# Per-tool skill caches downloaded locally; should not be published.
+.claude/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.agents/
+skills-lock.json

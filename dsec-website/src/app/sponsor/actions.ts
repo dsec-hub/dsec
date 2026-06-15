@@ -13,6 +13,31 @@ import { addSponsorLeadToNotion, type SponsorLead } from "@/lib/notion";
 import { site } from "@/lib/content";
 import { guardSubmission } from "@/lib/form-guard";
 
+/** Push a lead to dsec-api (best-effort — never blocks the visitor flow). */
+async function pushLeadToApi(data: {
+  source: string;
+  tier?: string;
+  name?: string;
+  email: string;
+  company?: string;
+  phone?: string;
+  budget?: string;
+  message?: string;
+}): Promise<void> {
+  const apiUrl = process.env.DSEC_API_URL?.replace(/\/+$/, "");
+  if (!apiUrl) return;
+  try {
+    await fetch(`${apiUrl}/sponsor-leads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    // Intentionally swallowed — API sync is advisory.
+  }
+}
+
 export type SponsorFormState = {
   ok: boolean;
   error?: string;
@@ -71,7 +96,8 @@ export async function submitSponsorEnquiry(
     };
   }
 
-  await syncLeadToNotion({ email, company, source: "Enquiry form" });
+  void syncLeadToNotion({ email, company, source: "Enquiry form" });
+  void pushLeadToApi({ source: "enquiry", email, company: company || undefined, budget: budget || undefined, message: message || undefined });
 
   return { ok: true };
 }
@@ -137,7 +163,15 @@ export async function captureSponsorLead(
     };
   }
 
-  await syncLeadToNotion({ name, email, company, phone, tier, source: "Pricing unlock" });
+  void syncLeadToNotion({ name, email, company, phone, tier, source: "Pricing unlock" });
+  void pushLeadToApi({
+    source: "pricing_unlock",
+    tier: tier || undefined,
+    name: name || undefined,
+    email,
+    company: company || undefined,
+    phone: phone || undefined,
+  });
 
   return { ok: true };
 }

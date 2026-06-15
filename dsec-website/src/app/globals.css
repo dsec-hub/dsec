@@ -247,6 +247,20 @@ img.pixelated,
     border-color: var(--color-sky);
     background: var(--color-panel);
   }
+  /* Safari/iOS draw native <select> chrome (system chevron + grey gradient) that
+     ignores .pixel-input. Flatten it and paint our own paper chevron. Grouped
+     with :focus so the focus background-swap above can't drop the chevron. */
+  select.pixel-input,
+  select.pixel-input:focus {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23f5efe2' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 0.9rem;
+  }
 
   /* - Section eyebrow label - */
   .eyebrow {

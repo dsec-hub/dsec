@@ -17,6 +17,8 @@ import {
   type ClubEvent,
   type MediaItem,
   type Project,
+  type Speaker,
+  type SponsorBrand,
   type Tier,
 } from "@/lib/content";
 import type { DuckName } from "@/components/pixel-duck";
@@ -54,6 +56,7 @@ type ApiEvent = {
   title: string;
   type: string | null;
   status: string | null;
+  description: string | null;
   date: string | null;
   end_date: string | null;
   venue: string | null;
@@ -65,6 +68,31 @@ type ApiEvent = {
   image: string | null;
   download: string | null;
   media: ApiMedia[] | null;
+  speakers?: ApiSpeaker[] | null;
+  sponsors?: ApiEventSponsor[] | null;
+};
+
+type ApiSpeaker = {
+  name: string;
+  title: string | null;
+  bio: string | null;
+  photo: string | null;
+  photo_png: string | null;
+};
+
+type ApiEventSponsor = {
+  name: string;
+  website: string | null;
+  tier: string | null;
+  logo: string | null;
+  logo_png: string | null;
+};
+
+type ApiSponsor = {
+  name: string;
+  website: string | null;
+  logo: string | null;
+  logo_png: string | null;
 };
 
 /**
@@ -139,6 +167,24 @@ function mapProject(p: ApiProject, i: number): Project {
   };
 }
 
+function mapSpeaker(s: ApiSpeaker): Speaker {
+  return {
+    name: s.name,
+    title: s.title ?? undefined,
+    bio: s.bio ?? undefined,
+    photo: s.photo ?? undefined,
+  };
+}
+
+function mapEventSponsor(s: ApiEventSponsor): SponsorBrand {
+  return {
+    name: s.name,
+    website: s.website ?? undefined,
+    tier: s.tier ?? undefined,
+    logo: s.logo ?? undefined,
+  };
+}
+
 function mapEvent(e: ApiEvent, i: number): ClubEvent {
   const { bannerUrl, posterUrl, gallery } = splitMedia(e.media);
   return {
@@ -148,6 +194,7 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     isoDate: e.date ?? undefined,
     status: e.upcoming ? "upcoming" : "past",
     blurb: [e.type, e.format, e.venue].filter(Boolean).join(" · ") || "Details on Discord.",
+    description: e.description ?? undefined,
     image: EVENT_DUCKS[i % EVENT_DUCKS.length],
     accent: ACCENTS[i % ACCENTS.length],
     ticketUrl: e.ticket_url ?? undefined,
@@ -162,6 +209,8 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     bannerUrl,
     posterUrl,
     gallery,
+    speakers: (e.speakers ?? []).map(mapSpeaker),
+    sponsors: (e.sponsors ?? []).map(mapEventSponsor),
   };
 }
 
@@ -252,4 +301,23 @@ async function getPackagesFromApi(): Promise<Tier[] | null> {
 export async function getPackages(): Promise<Tier[]> {
   const rows = await getPackagesFromApi();
   return rows ?? placeholderTiers;
+}
+
+// ---------------------------------------------------------------------------
+// Published sponsors (logo wall)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sponsors the exec has published (show_on_website + a logo), for the sponsor
+ * page's "our sponsors" wall. Returns [] on any failure so the section simply
+ * doesn't render — no placeholder, since fake logos would be misleading.
+ */
+export async function getSponsors(): Promise<SponsorBrand[]> {
+  const rows = await fetchJson<ApiSponsor[]>("/website/sponsors");
+  if (!rows) return [];
+  return rows.map((s) => ({
+    name: s.name,
+    website: s.website ?? undefined,
+    logo: s.logo ?? undefined,
+  }));
 }

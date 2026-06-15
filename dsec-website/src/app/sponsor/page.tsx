@@ -3,9 +3,10 @@ import { SponsorForm } from "@/components/sponsor-form";
 import { SponsorTiers } from "@/components/sponsor-tiers";
 import { BookMeetingButton } from "@/components/book-meeting-button";
 import { SectionHeading, EventCard } from "@/components/ui";
+import { SponsorLogos } from "@/components/media";
 import { PixelDuck } from "@/components/pixel-duck";
 import { stats, projects } from "@/lib/content";
-import { getEvents, getPackages } from "@/lib/api";
+import { getEvents, getPackages, getSponsors } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Sponsor DSEC - Reach Deakin Software Talent",
@@ -30,9 +31,10 @@ export const metadata: Metadata = {
 export default async function SponsorPage() {
   // Live events when present, else the static proof list (same fallback as the
   // rest of the site), so the cards always link to a real detail page.
-  const [flagship, tiers] = await Promise.all([
+  const [flagship, tiers, sponsors] = await Promise.all([
     getEvents().then((evts) => evts.filter((e) => e.status === "past").slice(0, 2)),
     getPackages(),
+    getSponsors(),
   ]);
 
   return (
@@ -148,6 +150,18 @@ export default async function SponsorPage() {
 
         </div>
       </section>
+
+      {/* Our sponsors — real logo wall, only when sponsors are published */}
+      {sponsors.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <SectionHeading eyebrow="Our sponsors" title="Brands that back us.">
+            The companies already supporting DSEC and the students who build with us.
+          </SectionHeading>
+          <div className="mt-8">
+            <SponsorLogos sponsors={sponsors} center />
+          </div>
+        </section>
+      )}
 
       {/* 3 - PACKAGED TIERS, anchored */}
       <section id="packages" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">

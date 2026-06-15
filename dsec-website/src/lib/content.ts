@@ -22,6 +22,22 @@ export type MediaItem = {
   height?: number;
 };
 
+/** A speaker presenting at an event (from the dsec-api feed). */
+export type Speaker = {
+  name: string;
+  title?: string;
+  bio?: string;
+  photo?: string; // headshot (WebP)
+};
+
+/** A sponsor backing an event or shown on the sponsor wall (with its logo). */
+export type SponsorBrand = {
+  name: string;
+  website?: string;
+  tier?: string;
+  logo?: string; // transparent logo (WebP)
+};
+
 export const site = {
   name: "DSEC",
   longName: "Deakin Software Engineering Club",
@@ -129,6 +145,7 @@ export type ClubEvent = {
   isoDate?: string;
   status: "past" | "upcoming";
   blurb: string;
+  description?: string; // free-form Markdown body shown on the detail page
   outcome?: string; // for past events - the proof
   image: DuckName;
   accent: "blue" | "pink" | "yellow" | "mint";
@@ -145,6 +162,8 @@ export type ClubEvent = {
   bannerUrl?: string; // wide hero image (WebP) for the detail page
   posterUrl?: string; // portrait key-art (WebP) for the detail page
   gallery?: MediaItem[]; // extra images for the detail-page gallery
+  speakers?: Speaker[]; // speakers presenting at this event
+  sponsors?: SponsorBrand[]; // sponsors backing this event (logo wall)
 };
 
 /** Format one tier's price for display: null → "—", 0 → "Free", else AUD. */

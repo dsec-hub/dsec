@@ -91,7 +91,7 @@ export function HeroConsole() {
           <img
             src="/pixel/hero-party-loop.gif"
             width={1280}
-            height={440}
+            height={368}
             alt="Wide pixel-art scene of a DSEC tech-nerd party: yellow ducks in groups chatting and sipping drinks, sharing pizza, and coding on glowing laptops, gently bobbing in a looped animation"
             className="pixelated pointer-events-none mx-auto block h-auto w-full select-none"
           />

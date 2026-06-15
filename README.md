@@ -105,3 +105,12 @@ Both Next.js apps and the FastAPI app target **Vercel**. `dsec-app` needs
 `RUN_MIGRATIONS_ON_STARTUP=true` on `dsec-api`). See **`DEPLOY.md`** for the
 step-by-step deploy runbook, and `HANDOVER.md` for the non-technical operations
 guide.
+
+## License
+
+Copyright © 2026 DSEC.
+
+Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0) — see
+[`LICENSE`](./LICENSE). In short: you may use, study, and modify this software,
+but any modified version you run as a network service must make its complete
+corresponding source available to its users under the same license.

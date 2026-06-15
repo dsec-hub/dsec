@@ -156,9 +156,21 @@ async function fetchJson<T>(path: string): Promise<T | null> {
   try {
     // Revalidate every 5 minutes — the public feed changes slowly.
     const res = await fetch(`${base}${path}`, { next: { revalidate: 300 } });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // The placeholder fallback is intentional, but in dev surface WHY the live
+      // feed didn't load (so a misconfigured DSEC_API_URL / a 500 is diagnosable).
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[dsec-api] GET ${path} → ${res.status}; using placeholder content`);
+      }
+      return null;
+    }
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[dsec-api] GET ${path} failed (${(err as Error).message}); using placeholder content`,
+      );
+    }
     return null;
   }
 }
@@ -230,7 +242,7 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     accent: ACCENTS[i % ACCENTS.length],
     ticketUrl: e.ticket_url ?? undefined,
     ticketTiers: e.ticket_tiers ?? undefined,
-    foodIncluded: e.food_provided ?? undefined,
+    foodIncluded: e.food_provided,
     venue: e.venue ?? undefined,
     format: e.format ?? undefined,
     type: e.type ?? undefined,
@@ -246,24 +258,24 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
   };
 }
 
-export async function getProjectsFromApi(): Promise<Project[] | null> {
+async function getProjectsFromApi(): Promise<Project[] | null> {
   const rows = await fetchJson<ApiProject[]>("/website/projects");
   if (!rows) return null;
   return rows.map(mapProject);
 }
 
-export async function getProjectFromApi(slug: string): Promise<Project | null> {
+async function getProjectFromApi(slug: string): Promise<Project | null> {
   const row = await fetchJson<ApiProject>(`/website/projects/${encodeURIComponent(slug)}`);
   return row ? mapProject(row, 0) : null;
 }
 
-export async function getEventsFromApi(): Promise<ClubEvent[] | null> {
+async function getEventsFromApi(): Promise<ClubEvent[] | null> {
   const rows = await fetchJson<ApiEvent[]>("/website/events");
   if (!rows) return null;
   return rows.map(mapEvent);
 }
 
-export async function getEventFromApi(slug: string): Promise<ClubEvent | null> {
+async function getEventFromApi(slug: string): Promise<ClubEvent | null> {
   const row = await fetchJson<ApiEvent>(`/website/events/${encodeURIComponent(slug)}`);
   return row ? mapEvent(row, 0) : null;
 }

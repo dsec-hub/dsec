@@ -159,6 +159,15 @@ img.pixelated,
     transform: translate(2px, 2px);
     box-shadow: 0 0 0 0 var(--color-paper);
   }
+  /* In-flight / disabled (e.g. a submitting form button): read as inactive —
+     dim it, drop the hover-lift affordance, and show a not-allowed cursor so the
+     label change ("Sending…") isn't the only signal. */
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--shadow-pix);
+  }
   .btn-blue {
     background: var(--color-blue);
     color: #fff;

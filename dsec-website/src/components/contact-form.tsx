@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { site } from "@/lib/content";
 import { submitContact, type ContactFormState } from "@/app/contact/actions";
@@ -19,10 +19,22 @@ const topics = [
 export function ContactForm() {
   const [state, formAction] = useActionState(submitContact, initialState);
   const error = state.ok ? null : state.error ?? null;
+  const successRef = useRef<HTMLDivElement>(null);
+
+  // On a successful submit the form is replaced by the confirmation; move focus
+  // to it (and announce via role="status") so keyboard/SR users aren't stranded.
+  useEffect(() => {
+    if (state.ok) successRef.current?.focus();
+  }, [state.ok]);
 
   if (state.ok) {
     return (
-      <div className="pixel-card-lg bg-mint p-8 text-center text-ink">
+      <div
+        ref={successRef}
+        role="status"
+        tabIndex={-1}
+        className="pixel-card-lg bg-mint p-8 text-center text-ink outline-none"
+      >
         <div className="font-display text-3xl font-bold">Message sent ✓</div>
         <p className="mx-auto mt-3 max-w-md text-ink/80">
           Thanks for reaching out. The committee will get back to you soon. You can
@@ -41,7 +53,13 @@ export function ContactForm() {
       <Honeypot />
       <div className="grid gap-5">
         <Field label="Name">
-          <input type="text" name="name" placeholder="Your name" className="pixel-input" />
+          <input
+            type="text"
+            name="name"
+            autoComplete="name"
+            placeholder="Your name"
+            className="pixel-input"
+          />
         </Field>
 
         <Field label="Email" required>
@@ -49,6 +67,7 @@ export function ContactForm() {
             type="email"
             name="email"
             required
+            autoComplete="email"
             placeholder="you@email.com"
             className="pixel-input"
           />
@@ -78,7 +97,10 @@ export function ContactForm() {
         </Field>
 
         {error && (
-          <p className="border-2 border-pink bg-pink/10 px-3 py-2 font-mono text-sm text-pink">
+          <p
+            role="alert"
+            className="border-2 border-pink bg-pink/10 px-3 py-2 font-mono text-sm text-pink"
+          >
             {error}
           </p>
         )}

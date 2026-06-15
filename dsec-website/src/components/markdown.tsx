@@ -12,6 +12,24 @@ function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
+/**
+ * Allowlist the URL scheme on Markdown links/images so a `javascript:`/`data:`
+ * URL in a dashboard-authored description can't execute when rendered on the
+ * public site. Returns the URL to use, or null when the scheme is disallowed.
+ * (Mirrors the dsec-app renderer's guard.)
+ */
+function safeUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  // Strip ASCII control chars + whitespace the way a browser does when sniffing
+  // the scheme, so `java\tscript:` can't slip through.
+  const probe = trimmed.replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+  const scheme = probe.match(/^([a-z][a-z0-9+.-]*):/);
+  if (scheme) {
+    return ["http", "https", "mailto", "tel"].includes(scheme[1]) ? trimmed : null;
+  }
+  return probe.startsWith("//") ? null : trimmed;
+}
+
 function renderInline(text: string, keyBase: string): React.ReactNode[] {
   // Order matters: inline code first (so markup inside it stays literal), then
   // images (before links, so the leading `!` isn't dropped), links, bold, italic.
@@ -29,11 +47,13 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
     }
     const image = tok.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (image) {
+      const src = safeUrl(image[2]);
+      if (!src) return <span key={key}>{image[1]}</span>;
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={key}
-          src={image[2]}
+          src={src}
           alt={image[1]}
           className="my-2 max-w-full border-[3px] border-paper"
         />
@@ -41,11 +61,13 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
     }
     const link = tok.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (link) {
-      const external = /^https?:\/\//i.test(link[2]);
+      const href = safeUrl(link[2]);
+      if (!href) return <span key={key}>{link[1]}</span>;
+      const external = /^https?:\/\//i.test(href);
       return (
         <a
           key={key}
-          href={link[2]}
+          href={href}
           target={external ? "_blank" : undefined}
           rel={external ? "noreferrer noopener" : undefined}
           className="font-bold text-pink underline underline-offset-2"
@@ -98,9 +120,17 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
 
   const flushPara = () => {
     if (para.length) {
+      const k = key();
+      // Preserve each source line as its own line (single newline → <br/>), so a
+      // description authored in the dashboard renders identically here and there.
       blocks.push(
-        <p key={key()} className="leading-relaxed text-paper/85">
-          {renderInline(para.join(" "), key())}
+        <p key={k} className="leading-relaxed text-paper/85">
+          {para.map((ln, li) => (
+            <span key={li}>
+              {li > 0 && <br />}
+              {renderInline(ln, `${k}-${li}`)}
+            </span>
+          ))}
         </p>,
       );
       para = [];
@@ -261,10 +291,15 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
         "text-lg font-bold",
         "text-base font-bold",
       ];
+      // Emit real heading tags one level below the page <h1> (# → h2 … capped at
+      // h4) so screen-reader heading navigation and SEO get a real outline from
+      // the authored description, keeping the font-display sizing.
+      const Tag = (["h2", "h3", "h4", "h4"] as const)[level - 1];
+      const k = key();
       blocks.push(
-        <p key={key()} className={cn("font-display mt-2", sizes[level - 1])}>
-          {renderInline(heading[2], key())}
-        </p>,
+        <Tag key={k} className={cn("font-display mt-2", sizes[level - 1])}>
+          {renderInline(heading[2], k)}
+        </Tag>,
       );
     } else if (bullet) {
       flushPara();
@@ -300,6 +335,8 @@ function parseBlocks(lines: string[], keyPrefix: string): React.ReactNode[] {
 }
 
 export function Markdown({ content, className }: { content: string; className?: string }) {
-  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  // Null-guard so the component is safe even if a caller forgets to gate on a
+  // present description (matches the dsec-app renderer).
+  const lines = (content ?? "").replace(/\r\n/g, "\n").split("\n");
   return <div className={cn("space-y-3", className)}>{parseBlocks(lines, "b")}</div>;
 }

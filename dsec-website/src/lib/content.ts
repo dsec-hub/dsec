@@ -13,6 +13,9 @@ export const PLACEHOLDER = "PLACEHOLDER";
  * `banner` (wide hero), `poster` (portrait key art), or `image` (gallery).
  * `webp` is for display, `png` for download.
  */
+/** Card accent palette. One shared type for every entity that themes a card. */
+export type Accent = "blue" | "pink" | "yellow" | "mint";
+
 export type MediaItem = {
   role: "image" | "poster" | "banner";
   webp: string;
@@ -84,7 +87,7 @@ export type Project = {
   lead?: Lead; // project lead (name + role + headshot), from the API
   stack: string[];
   image: DuckName; // pixel sprite name (see PixelDuck), resolved to /public/pixel
-  accent: "blue" | "pink" | "yellow" | "mint";
+  accent: Accent;
   repo?: string;
   live?: string;
   description?: string; // longer body for the detail page
@@ -157,7 +160,7 @@ export type ClubEvent = {
   description?: string; // free-form Markdown body shown on the detail page
   outcome?: string; // for past events - the proof
   image: DuckName;
-  accent: "blue" | "pink" | "yellow" | "mint";
+  accent: Accent;
   registerUrl?: string; // for upcoming
   ticketUrl?: string; // public buy-tickets / RSVP link (from the API)
   ticketTiers?: { label: string; price: number | null }[]; // per-audience pricing (upcoming only)
@@ -295,7 +298,7 @@ export const tiers: Tier[] = [
 export type Member = {
   name: string;
   role: string;
-  accent: "blue" | "pink" | "yellow" | "mint";
+  accent: Accent;
   description?: string;
   image?: string; // headshot in /public/team
   instagram?: string; // handle, with or without leading @
@@ -390,16 +393,10 @@ export const team: Member[] = [
   },
 ];
 
-export const accentBg: Record<string, string> = {
+export const accentBg: Record<Accent, string> = {
   blue: "bg-blue",
   pink: "bg-pink",
   yellow: "bg-yellow",
   mint: "bg-mint",
 };
 
-export const accentText: Record<string, string> = {
-  blue: "text-blue",
-  pink: "text-pink",
-  yellow: "text-yellow",
-  mint: "text-mint",
-};

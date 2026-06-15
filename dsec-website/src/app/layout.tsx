@@ -67,8 +67,16 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} ${mono.variable} h-full`}
     >
       <body className="bg-bg text-paper font-body antialiased min-h-full flex flex-col">
+        {/* Skip link: lets keyboard / screen-reader users jump past the header
+            nav straight to the page content. Off-screen until focused. */}
+        <a
+          href="#main"
+          className="absolute left-[-9999px] z-[200] font-mono text-sm focus:left-4 focus:top-4 focus:bg-pink focus:px-4 focus:py-2 focus:text-paper"
+        >
+          Skip to content
+        </a>
         <SiteHeader />
-        <main className="flex-1">
+        <main id="main" className="flex-1">
           <PageTransition>{children}</PageTransition>
         </main>
         <SiteFooter />

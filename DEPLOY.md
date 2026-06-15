@@ -65,7 +65,7 @@ No database env vars.
 
 ## dsec-api (email agent) — separate & optional
 Not needed for the dashboard. To deploy it, follow `dsec-api/TODO.md` → "Before
-first production deploy": set `AGENT_SECRET`, `OPENAI_API_KEY`, pooled
+first production deploy": set `AGENT_SECRET`, `ANTHROPIC_API_KEY`, pooled
 `DATABASE_URL`, and dashboard basic-auth creds; the schema is already migrated if
 you deployed `dsec-app` against the same Neon database; then point the Gmail Apps
 Script at `POST /email/process`.

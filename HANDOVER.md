@@ -20,10 +20,10 @@ All three are separate. The dashboard and the email agent share one **database**
 |---|---|---|
 | Database | **Neon** (neon.tech) | All the real data: events, people, sponsors, finance, logins. |
 | Hosting | **Vercel** (vercel.com) | Runs the dashboard, website, and email agent. |
-| AI | **OpenAI** | Powers the email drafting only. |
+| AI | **Anthropic (Claude)** | Powers the email drafting only. |
 | Code | This repository | Everything, version-controlled. |
 
-Keep the logins for Neon, Vercel, and OpenAI somewhere safe and pass them to next
+Keep the logins for Neon, Vercel, and Anthropic somewhere safe and pass them to next
 year's exec. **That is the single most important part of this handover.**
 
 ## Day to day
@@ -60,15 +60,15 @@ dashboard that the project is active and the billing/free-tier limits are fine.
   app) and in any local `.env`. Everything else keeps working.
 - **The `AUTH_SECRET` is changed** → everyone is logged out and must sign in again.
   No data is lost.
-- **The OpenAI key expires / runs out of credit** → the email agent stops drafting
+- **The Anthropic (Claude) key expires / runs out of credit** → the email agent stops drafting
   (it logs the error and ignores the email). The dashboard is **unaffected**.
-- **You lose the service logins (Neon/Vercel/OpenAI)** → the hardest to recover.
+- **You lose the service logins (Neon/Vercel/Anthropic)** → the hardest to recover.
   Protect them.
 
 ## Costs
 
 Designed to run on **free tiers**: Neon (free Postgres), Vercel (free hosting).
-The only usage cost is **OpenAI** for email drafting — a few dollars a month at
+The only usage cost is **Anthropic (Claude)** for email drafting — a few dollars a month at
 committee scale, and capped in the email agent's settings
 (`GLOBAL_DAILY_LLM_CAP`). If you don't use the email agent, there's no AI cost.
 

@@ -34,7 +34,7 @@ that was removed in favour of a single source of truth.)
 | App | Stack | Responsibility |
 |---|---|---|
 | **`dsec-app/`** | Next.js 16 (App Router, Turbopack), Tailwind v4, Auth.js v5, Drizzle | Internal exec dashboard. Per-person login. Full CRUD over events, people, sponsors, finance. The team's day-to-day tool. |
-| **`dsec-api/`** | FastAPI, SQLAlchemy, Alembic, OpenAI | Email agent (`/email/process`: spam-gate → classify → draft, never auto-sends) + scoped, rate-limited, cost-capped public API. **Owns the Neon schema** (models + migrations). |
+| **`dsec-api/`** | FastAPI, SQLAlchemy, Alembic, Anthropic (Claude) | Workspace backend + email agent (`/email/process`: spam-gate → classify → draft, never auto-sends) + public website feed + MCP server, all scoped, rate-limited, cost-capped. **Owns the Neon schema** (models + migrations). |
 | **`dsec-website/`** | Next.js 16 | Public marketing site. Independent of the data layer. |
 
 ### Why `dsec-api` owns the schema
@@ -85,7 +85,7 @@ npm run dev                                # http://localhost:3000
 |---|---|---|
 | `DATABASE_URL` | both | Neon Postgres. `dsec-api` uses the `postgresql+psycopg://…` form; `dsec-app` uses `postgresql://…`. Use the **pooled** (`-pooler`) host in production. |
 | `AUTH_SECRET` | dsec-app | NextAuth session signing key. |
-| `AGENT_SECRET`, `OPENAI_API_KEY`, `DASHBOARD_USER/PASS` | dsec-api | Email-agent auth, OpenAI, audit-dashboard basic auth. See `dsec-api/.env.example`. |
+| `AGENT_SECRET`, `ANTHROPIC_API_KEY`, `DASHBOARD_USER/PASS` | dsec-api | Email-agent auth, Anthropic (Claude) API key, audit-dashboard basic auth. See `dsec-api/.env.example`. |
 
 Real secrets are **never** committed. `dsec-api/.env` and `dsec-app/.env.local`
 are gitignored.

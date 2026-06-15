@@ -27,7 +27,9 @@ npm run build    # production build (all pages are static)
 | `/events` | both | Register / proof of delivery |
 | `/join` | students | Join the Discord |
 | `/about` | trust | committee + DUSA affiliation |
-| `/heroes` | **design exploration** — all 5 hero treatments |
+| `/contact` | both | Reach the committee (email / Discord / socials) |
+| `/scan` | in-person | QR board for event screens (site / IG / Discord / join) |
+| `/heroes` | **design exploration** — all 6 hero treatments |
 
 The two funnels (sponsors vs students) never share a CTA on the same page, per the
 brief. Replace anything flagged `PLACEHOLDER` (and the `⚑` notes in the UI) with
@@ -89,7 +91,7 @@ add a key there and re-run to mint new sprites.
 src/
   app/            # routes (App Router) + globals.css design system + icons
   components/
-    heroes.tsx    # the 5 hero explorations
+    heroes.tsx    # the 6 hero explorations
     site-header / site-footer
     ui.tsx        # Stat, ProjectCard, EventCard, SectionHeading, PlaceholderNote
     pixel-duck.tsx# typed <Image> wrapper for the sprites

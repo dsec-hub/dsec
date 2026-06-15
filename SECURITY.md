@@ -5,9 +5,9 @@ Defence in layers. No single layer stops everything, so each domain
 
 ```
             ┌─────────────────────────────────────────────────────┐
- Internet → │ 1. Cloudflare (edge WAF + rate rules + bot mgmt)     │  ← blocks volumetric DDoS
+ Internet → │ 1. Cloudflare DNS (authoritative, not proxied)       │  ← grey-cloud / DNS only
             ├─────────────────────────────────────────────────────┤
-            │ 2. Vercel Firewall (platform DDoS + custom rules)    │  ← defence-in-depth at origin
+            │ 2. Vercel Firewall (platform DDoS + custom rules)    │  ← blocks volumetric DDoS (the edge)
             ├─────────────────────────────────────────────────────┤
             │ 3. App code (Upstash per-IP + login throttle)        │  ← scripting / brute-force
             │    dsec-api: per-key + per-IP + daily LLM caps (Neon) │
@@ -16,9 +16,12 @@ Defence in layers. No single layer stops everything, so each domain
 
 > **Why layers:** a true volumetric DDoS *cannot* be stopped in application
 > code — by the time your function runs, you've already paid for the request
-> (and, for `dsec-api`, touched Neon). Floods must die at the **edge** (layers
-> 1–2). App code (layer 3) is for what the edge is bad at: credential stuffing
-> on the login form and scripted hammering of an authenticated session.
+> (and, for `dsec-api`, touched Neon). Floods must die at the **edge** — which
+> here is **Vercel Firewall (layer 2)**, since the Vercel records are grey-cloud
+> (DNS-only) in Cloudflare and Cloudflare's proxied edge protections therefore
+> don't sit in front of the apps (see Layer 1). App code (layer 3) is for what
+> the edge is bad at: credential stuffing on the login form and scripted
+> hammering of an authenticated session.
 
 ---
 
@@ -51,40 +54,54 @@ cap. Tunables in `app/config.py` (`RATE_LIMIT_*`, `GLOBAL_DAILY_LLM_CAP`,
 
 ---
 
-## Layer 1 — Cloudflare (you set this up)
+## Layer 1 — Cloudflare (DNS — already set up)
 
-Proxies DNS for all three domains and blocks floods/bots before they reach
-Vercel. Free plan is enough to start.
+Cloudflare is the **authoritative DNS** for all three domains; the nameservers
+**already point to Cloudflare** (see [`HOSTING.md`](./HOSTING.md) → Stage 5) and
+**must not be moved** — Hostinger only hosts the mailboxes. There is no nameserver
+migration to do.
 
-1. Add the zone `dsec.club` to Cloudflare → it gives you two **nameservers**.
-2. At **Hostinger** (where DNS currently lives), change the domain's
-   nameservers to Cloudflare's. *(This is the one disruptive step — propagation
-   can take a few hours; the site stays up throughout.)*
-3. In Cloudflare DNS, recreate the records that point `@`, `app`, and `api` to
-   Vercel, and **enable the orange cloud (proxied)** on each.
-   - Keep MX / email records (Hostinger) **DNS-only / grey cloud**.
-4. **SSL/TLS** → set to **Full (strict)** (Vercel serves valid certs).
-5. **Security → WAF → Rate limiting rules** (free tier allows one; put it on the
-   most sensitive path):
-   - Rule: if URI path contains `/api/auth` (app) **or** matches `api.dsec.club/*`,
-     more than **20 requests / 10 s / IP** → **Block** for 1 min.
-6. **Security → Bots** → enable **Bot Fight Mode**.
-7. (Optional, recommended for the public site) **Turnstile** captcha on the
-   sponsor/contact forms — HOSTING.md already lists Turnstile as an option.
+Per HOSTING.md (authoritative), the Vercel web records (`@`, `www`, `app`, `api`)
+are **grey-cloud / "DNS only"**, *not* proxied (orange). Proxying Cloudflare in
+front of Vercel breaks cert issuance / domain verification and can cause redirect
+loops, so the records stay grey-cloud and **Vercel serves TLS directly**.
+
+> ⚠️ **Consequence:** because the Vercel records are grey-cloud, Cloudflare is
+> **not in the request path** for the apps — it only answers DNS. Cloudflare's
+> proxied-only protections (**WAF custom rules**, **Rate limiting rules**, **Bot
+> Fight Mode**, the SSL/TLS proxy mode) therefore **do not apply** to the Vercel
+> apps. Edge DDoS/abuse mitigation for them is carried by **Vercel Firewall
+> (Layer 2)** plus the app code (Layer 3).
+
+What Cloudflare *does* contribute without proxying:
+
+1. **Authoritative DNS** — already configured. Keep the Vercel web records
+   **DNS only (grey cloud)** and leave the Hostinger `MX` / SPF / DKIM / DMARC
+   records in place (also grey). All records are edited in the Cloudflare dashboard.
+2. **Turnstile** (optional, recommended for the public site) — a free captcha on
+   the sponsor/contact forms. It's a script + token check, so it works regardless
+   of the grey-cloud setting. HOSTING.md lists the `TURNSTILE_*` env vars.
+
+> If you ever wanted Cloudflare's edge WAF / rate-limiting / Bot Fight Mode in
+> front of the apps, you'd have to **proxy** (orange-cloud) the records — which
+> HOSTING.md rules out for Vercel. Use **Vercel Firewall (Layer 2)** for edge
+> rate-limiting instead (it covers `/api/auth` and `api.dsec.club` below).
 
 ## Layer 2 — Vercel Firewall (you set this up — no keys)
 
-Native to your hosting, no account/keys needed. For **each** of the 3 Vercel
-projects:
+Native to your hosting, no account/keys needed — and because the Vercel records
+are grey-cloud, this is the **primary edge layer** for the apps (all web traffic
+reaches Vercel directly). For **each** of the 3 Vercel projects:
 
 1. Project → **Firewall**. Vercel's **Attack Challenge Mode** + automatic DDoS
    mitigation are on by default — confirm they're enabled.
-2. Add **Custom Rules** as a backstop in case traffic bypasses Cloudflare
-   (e.g. someone hits the `*.vercel.app` origin directly):
+2. Add **Custom Rules** — this is where the per-path rate limits live (Cloudflare
+   isn't proxying, so it can't do them):
    - **Rate limit** rule: `100 requests / 60 s` per IP → **Challenge**.
    - Stricter rule on `app.dsec.club` path `/api/auth/*`: `20 / 60 s` → **Deny**.
-3. (Hardening) Optionally **deny** direct traffic to the `*.vercel.app` domain
-   so the public can only reach you *through* Cloudflare.
+   - On the API project, a rate-limit rule on `api.dsec.club/*` → **Challenge**.
+3. (Hardening) Optionally **deny** direct traffic to the raw `*.vercel.app` origin
+   so the public can only reach each app through its **custom domain**.
 
 ---
 
@@ -100,12 +117,13 @@ Vercel dashboard env settings for each project):
      REST API section. Add both to the **dsec-app** Vercel project env (Production
      + Preview) and your local `.env.local`.
 
-2. **Cloudflare** (layers 1): you mainly do this in the dashboard, but if you
-   want me to script DNS/WAF via Terraform or the API, I'll need:
-   - A **Cloudflare API token** scoped to Zone → *DNS:Edit*, *Firewall
-     Services:Edit*, *Zone WAF:Edit* for the `dsec.club` zone.
-   - The **Zone ID** (Cloudflare dashboard → Overview, right sidebar).
-   - Otherwise just follow Layer 1 above in the dashboard — no token needed.
+2. **Cloudflare** (DNS — already configured): nothing is required to *enable*
+   protection here, because the Vercel records are grey-cloud, so Cloudflare's
+   WAF / rate limiting don't apply (see Layer 1). If you want me to script DNS
+   changes via the API I'll need a **Cloudflare API token** scoped to Zone →
+   *DNS:Edit* for the `dsec.club` zone, plus the **Zone ID** (Cloudflare dashboard
+   → Overview, right sidebar) — otherwise edit records in the dashboard. Optionally
+   enable **Turnstile** on the public forms (`TURNSTILE_*` env vars).
 
 3. **Vercel Firewall** (layer 2): dashboard-only, nothing for me to receive.
 

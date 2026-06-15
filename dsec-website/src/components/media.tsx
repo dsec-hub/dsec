@@ -1,4 +1,4 @@
-import { type MediaItem } from "@/lib/content";
+import { type MediaItem, type Speaker, type SponsorBrand } from "@/lib/content";
 import { PixelDuck } from "@/components/pixel-duck";
 
 /* ---------- Banner: wide hero across the top of a detail page ----------
@@ -33,6 +33,79 @@ export function Poster({ src, alt }: { src?: string; alt: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} className="aspect-[3/4] w-full object-cover" />
     </figure>
+  );
+}
+
+/* ---------- Speakers: headshot + name + title grid ---------- */
+export function Speakers({ speakers }: { speakers: Speaker[] }) {
+  if (!speakers.length) return null;
+  return (
+    <div className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {speakers.map((s, i) => (
+        <div key={`${s.name}-${i}`} className="pixel-card p-4 text-center">
+          <div className="mx-auto aspect-square w-full max-w-[160px] overflow-hidden border-[3px] border-paper bg-panel-2">
+            {s.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={s.photo} alt={s.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center">
+                <PixelDuck name="duck-laptop" alt="" size={72} />
+              </div>
+            )}
+          </div>
+          <h3 className="mt-3 font-display text-lg font-bold leading-tight">{s.name}</h3>
+          {s.title && <p className="font-mono text-xs text-paper/60">{s.title}</p>}
+          {s.bio && <p className="mt-1 text-sm text-paper/75">{s.bio}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Sponsor logos: a wall/strip of brand logos on white cards ----------
+   White card so any (transparent) logo reads on the dark theme; falls back to
+   the brand name when no logo is uploaded. `center` is used on the sponsor page
+   wall; the event page uses the default left-aligned strip. */
+function SponsorLogo({ sponsor }: { sponsor: SponsorBrand }) {
+  const box = (
+    <div className="grid h-20 min-w-[150px] place-items-center border-[3px] border-paper bg-paper px-5 shadow-[4px_4px_0_0_var(--color-paper)]">
+      {sponsor.logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={sponsor.logo} alt={sponsor.name} className="max-h-12 w-auto object-contain" />
+      ) : (
+        <span className="font-display text-lg font-bold text-ink">{sponsor.name}</span>
+      )}
+    </div>
+  );
+  return sponsor.website ? (
+    <a
+      href={sponsor.website}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="pixel-hover block"
+      title={sponsor.name}
+    >
+      {box}
+    </a>
+  ) : (
+    box
+  );
+}
+
+export function SponsorLogos({
+  sponsors,
+  center = false,
+}: {
+  sponsors: SponsorBrand[];
+  center?: boolean;
+}) {
+  if (!sponsors.length) return null;
+  return (
+    <div className={`stagger flex flex-wrap items-center gap-5 ${center ? "justify-center" : ""}`}>
+      {sponsors.map((s, i) => (
+        <SponsorLogo key={`${s.name}-${i}`} sponsor={s} />
+      ))}
+    </div>
   );
 }
 

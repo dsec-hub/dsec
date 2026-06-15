@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Banner, Poster, Gallery } from "@/components/media";
+import { Banner, Poster, Gallery, Speakers, SponsorLogos } from "@/components/media";
+import { Markdown } from "@/components/markdown";
 import { SectionHeading } from "@/components/ui";
 import { formatTicketPrice } from "@/lib/content";
 import { getEvent, getEvents } from "@/lib/api";
@@ -132,6 +133,42 @@ export default async function EventDetailPage({ params }: Props) {
             </dl>
           </div>
         </div>
+
+        {/* Description — free-form Markdown body, only when the event has one */}
+        {event.description && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="About" title="What's happening.">
+              The full rundown for {event.title}.
+            </SectionHeading>
+            <div className="mt-6 max-w-3xl text-lg">
+              <Markdown content={event.description} />
+            </div>
+          </div>
+        )}
+
+        {/* Speakers — only when the event has them */}
+        {event.speakers && event.speakers.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Speakers" title="Who's presenting.">
+              The people sharing what they know at {event.title}.
+            </SectionHeading>
+            <div className="mt-6">
+              <Speakers speakers={event.speakers} />
+            </div>
+          </div>
+        )}
+
+        {/* Sponsors — logo wall, only when the event has them */}
+        {event.sponsors && event.sponsors.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Sponsors" title="Thanks to our sponsors.">
+              {event.title} is made possible with the support of these partners.
+            </SectionHeading>
+            <div className="mt-6">
+              <SponsorLogos sponsors={event.sponsors} />
+            </div>
+          </div>
+        )}
 
         {/* Gallery — any extra uploaded content, with its own empty state */}
         <div className="mt-14">

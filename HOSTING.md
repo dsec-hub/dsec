@@ -1,7 +1,8 @@
 # DSEC — Full Hosting Runbook
 
 End-to-end guide to host the whole project on **Vercel** (web) + **Neon** (database)
-+ **Hostinger** (domain & email), with the Gmail Apps Scripts and mailbox wiring.
++ **Cloudflare** (DNS) + **Hostinger** (email mailboxes), with the Gmail Apps Scripts and
+mailbox wiring.
 
 This is the comprehensive version; the older `DEPLOY.md` only covered the dashboard.
 
@@ -27,7 +28,7 @@ it reads everything through the API's public `/website` feed.
 6. **Verify** everything end to end.
 
 ### Accounts/services you'll need
-- **Vercel** (3 projects), **Neon** (1 Postgres DB), **Hostinger** (already have `dsec.club` + email).
+- **Vercel** (3 projects), **Neon** (1 Postgres DB), **Cloudflare** (DNS for `dsec.club`), **Hostinger** (mailboxes for `dsec.club`).
 - **Anthropic** API key — *only if you use AI features* (email drafting, meeting notes).
 - **Supabase** — *only if you want event/project images* (free; a public Storage bucket).
 - **Resend** — for the website's sponsor/contact emails and dashboard member invites.
@@ -118,7 +119,7 @@ Supabase env vars above. Without this, image uploads return a clean `503` (every
 
 ### 2.5 Domain
 Vercel → the `dsec-api` project → **Domains → add `api.dsec.club`**. It shows a CNAME
-target — add it in Hostinger DNS (Stage 5).
+target — add it in Cloudflare DNS (Stage 5).
 
 ---
 
@@ -167,7 +168,7 @@ npx tsx scripts/create-user.ts exec@dsec.club 'a-strong-password' 'Your Name'
 ### 4.1 Verify the email domain in Resend
 The site sends from `noreply@dsec.club`, so the domain must be verified:
 1. Resend → API Keys → create a key (→ `RESEND_API_KEY`).
-2. Resend → Domains → add `dsec.club` → it lists **SPF/DKIM (and DMARC)** records → add them in Hostinger DNS (Stage 5). `noreply@dsec.club` needs **no mailbox** — Resend sends as it once verified.
+2. Resend → Domains → add `dsec.club` → it lists **SPF/DKIM (and DMARC)** records → add them in Cloudflare DNS (Stage 5). `noreply@dsec.club` needs **no mailbox** — Resend sends as it once verified.
 
 ### 4.2 Vercel project
 - Add New → Project → import the repo → **Root Directory: `dsec-website`** → **Next.js**.
@@ -190,20 +191,62 @@ The site sends from `noreply@dsec.club`, so the domain must be verified:
 
 ---
 
-## Stage 5 — DNS (Hostinger) — keep email intact
+## Stage 5 — DNS (Cloudflare) — keep Hostinger email intact
 
-Manage DNS **at Hostinger** (hPanel → Domains → DNS Zone). **Do NOT switch to Vercel
-nameservers** — that would move DNS off Hostinger and you'd have to recreate the email
-records. Just add the web records below; **leave the existing `MX` and email `TXT`
-(SPF/DKIM/DMARC) records untouched** — web (A/CNAME) and email (MX) coexist fine.
+**DNS lives in Cloudflare** (nameservers point to Cloudflare); **Hostinger only hosts the
+mailboxes**. So all records — web *and* email — are edited in the **Cloudflare dashboard →
+your domain → DNS → Records**. **Do NOT change the nameservers away from Cloudflare** (and
+don't switch to Vercel nameservers) — Cloudflare is authoritative, and moving it would take
+down both web and email until you recreate every record.
 
-| Type | Name | Value | For |
-|---|---|---|---|
-| `A` | `@` | `76.76.21.21` *(or the exact value Vercel shows)* | `dsec.club` → website |
-| `CNAME` | `www` | `cname.vercel-dns.com` | optional www → website |
-| `CNAME` | `app` | `cname.vercel-dns.com` | dashboard |
-| `CNAME` | `api` | `cname.vercel-dns.com` *(or your Railway/Render target)* | API |
-| `TXT`/`CNAME` | *(Resend's records)* | from Stage 4.1 | email sending |
+Add the web records below. **Leave the existing email records (`MX` + the SPF/DKIM/DMARC
+`TXT`s) in place** — they point at Hostinger and let web (A/CNAME) and email (MX) coexist.
+
+> ✅ **As of 2026-06-15 the live zone already has every record below.** There is nothing new
+> to *add* — the only cleanup is deleting the junk `ns1/ns2.vercel-dns.com.dsec.club` NS rows.
+> If Vercel shows a record as "missing", **edit** the existing row to the value below rather
+> than adding a duplicate (Cloudflare rejects two records on the same host). The Vercel CNAME
+> targets are **per-domain and unique** — the values shown are this zone's current ones; if a
+> Vercel project is recreated, copy the new target from its **Domains** tab.
+
+**Web → Vercel (all `cf-proxied:false` / grey-cloud):**
+
+| Type | Name | Value | Proxy | For |
+|---|---|---|---|---|
+| `A` | `@` | `216.198.79.1` *(the apex IP Vercel shows; was `76.76.21.21`)* | **DNS only** 🔘 | `dsec.club` → website |
+| `CNAME` | `www` | `cd041f83beec4f6c.vercel-dns-017.com` | **DNS only** 🔘 | www → website |
+| `CNAME` | `app` | `53473cb3fb6fdc62.vercel-dns-017.com` | **DNS only** 🔘 | dashboard |
+| `CNAME` | `api` | `606dd6d52ec2b90c.vercel-dns-017.com` *(or your Railway/Render target)* | **DNS only** 🔘 | API |
+
+**Vercel domain verification** (`TXT` `_vercel`, one per domain — already present):
+```
+vc-domain-verify=dsec.club,d53e4a66968a0c29a63e,dc
+vc-domain-verify=www.dsec.club,ccf5087190d05d383912,dc
+vc-domain-verify=app.dsec.club,fa42eb479bee4f689867,dc
+vc-domain-verify=api.dsec.club,863922ba49780358db80,dc
+```
+
+> ⚠️ **Set the Vercel web records to "DNS only" (grey cloud), not Proxied (orange).**
+> Proxying through Cloudflare in front of Vercel breaks cert issuance / domain verification
+> and can cause redirect loops. Grey-cloud them so Vercel can verify and serve TLS directly.
+
+**Hostinger mailbox records (the apex domain — already present):**
+- `MX` `@` → `mx1.hostinger.com` (priority **5**) and `mx2.hostinger.com` (priority **10**) — MX is never proxied.
+- `TXT` `@` SPF → **Hostinger only**: `v=spf1 include:_spf.mail.hostinger.com ~all`. **Do NOT add Resend/amazonses here** — Resend authenticates on its own `send.` subdomain (below), not the apex.
+- Hostinger DKIM (CNAMEs): `hostingermail-a._domainkey` → `hostingermail-a.dkim.mail.hostinger.com` (and `-b`, `-c` likewise).
+- Mail-client autoconfig (CNAMEs): `autoconfig` → `autoconfig.mail.hostinger.com`, `autodiscover` → `autodiscover.mail.hostinger.com`.
+- `TXT` `_dmarc` → `v=DMARC1; p=none` (monitor mode; tighten to `p=quarantine` later once mail is proven aligned).
+
+**Resend sending records (the `send.` subdomain — keeps apex SPF clean; already present):**
+- `MX` `send` → `feedback-smtp.ap-northeast-1.amazonses.com` (priority 10, bounce/feedback).
+- `TXT` `send` SPF → `v=spf1 include:amazonses.com ~all`.
+- `TXT` `resend._domainkey` → the DKIM public key from Resend (4.1). DMARC passes via DKIM alignment (`d=dsec.club`).
+
+> **Delete junk records** — the stray `ns1/ns2.vercel-dns.com.dsec.club NS` rows are leftovers
+> from a half-done nameserver switch and resolve nothing; Cloudflare's own
+> `kolton`/`rose.ns.cloudflare.com` are the real authoritative NS. If the domain were ever
+> migrated *into* Cloudflare fresh, confirm the `MX` and email `TXT`s imported before trusting
+> mail; any A record a mail hostname depends on must also be **DNS only**.
 
 Add each domain in its Vercel project's **Domains** tab; Vercel shows the exact record
 and verifies once DNS propagates (minutes to ~1h).
@@ -277,4 +320,6 @@ Mint more anytime with `python -m scripts.create_api_key --scopes <s> --label <n
 - **API uploads 503** → Supabase bucket missing/misnamed (must be public, name = `SUPABASE_STORAGE_BUCKET`).
 - **Email in spam** → finish Resend SPF/DKIM verification; send dsec.club replies via Hostinger SMTP (not Gmail's servers).
 - **API build too big on Vercel** → move `dsec-api` to Railway/Render (Stage 2.1 callout).
-- **Lost DUSA/website data after DNS change** → you switched to Vercel nameservers; revert to Hostinger DNS and keep the MX/TXT records.
+- **Email dies after a DNS change** → you either moved nameservers off Cloudflare or dropped the `MX`/SPF/DKIM/DMARC records; keep nameservers on Cloudflare and restore the email `MX`/`TXT`s pointing to Hostinger.
+- **Vercel domain won't verify / cert errors** → the web record is Proxied (orange cloud) in Cloudflare; set it to **DNS only** (grey cloud).
+- **Cloudflare: "An A, AAAA, or CNAME record with that host already exists"** → the record Vercel told you to *add* is already in the zone. A CNAME can't coexist with another record on the same host, and the apex can't be a CNAME while its `A` exists. **Edit** the existing row to Vercel's value instead of adding a duplicate — and don't try to CNAME the apex; the apex `A 216.198.79.1` already satisfies Vercel. A still-"Invalid" dashboard is usually propagation/stale check, not a missing record.

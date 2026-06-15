@@ -1,6 +1,6 @@
 # Welcome Back Mixer — Meet. Eat. Build.
 
-**Date:** Wednesday, 11 March 2026, 6:00 PM – 8:00 PM
+**Date:** Wednesday, 11 March 2026, 6:00 .PM – 8:00 PM
 **Venue:** LC4.107
 **Trimester:** T1 2026
 **Type:** Social

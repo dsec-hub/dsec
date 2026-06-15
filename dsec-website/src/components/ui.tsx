@@ -228,6 +228,21 @@ export function ProjectCard({ project }: { project: Project }) {
   );
 }
 
+/**
+ * Pick the preview image for an event card by priority. The poster (portrait
+ * key art) wins first, then the legacy uploaded image, the wide banner, and
+ * finally the first gallery image. Reorder this list to change the priority.
+ */
+function eventCardImage(event: ClubEvent): string | undefined {
+  const candidates = [
+    event.posterUrl,
+    event.imageUrl,
+    event.bannerUrl,
+    event.gallery?.[0]?.webp,
+  ];
+  return candidates.find(Boolean);
+}
+
 /* ---------- Event card (wraps ContentCard) ---------- */
 export function EventCard({ event }: { event: ClubEvent }) {
   const isUpcoming = event.status === "upcoming";
@@ -253,7 +268,7 @@ export function EventCard({ event }: { event: ClubEvent }) {
       title={event.title}
       blurb={event.blurb}
       accent={event.accent}
-      imageUrl={event.imageUrl}
+      imageUrl={eventCardImage(event)}
       sprite={event.image}
       spriteBob={isUpcoming}
       badge={{

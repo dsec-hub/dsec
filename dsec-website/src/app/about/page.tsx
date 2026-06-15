@@ -1,11 +1,24 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui";
 import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
+import { getTeam } from "@/lib/api";
 import { organizationSchema } from "@/lib/schema";
-import { team, accentBg, site } from "@/lib/content";
+import { accentBg, site } from "@/lib/content";
+
+/** Build a LinkedIn URL from a full URL, a "linkedin.com/…" string, or a bare
+ *  path/handle (e.g. "/in/name"). Handles both the static roster and live data. */
+function linkedinHref(v: string): string {
+  if (/^https?:\/\//i.test(v)) return v;
+  const s = v.replace(/^\/+/, "");
+  return /^(www\.)?linkedin\.com/i.test(s) ? `https://${s}` : `https://linkedin.com/${s}`;
+}
+
+/** Build an Instagram URL from a handle (with/without leading @) or a full URL. */
+function instagramHref(v: string): string {
+  return /^https?:\/\//i.test(v) ? v : `https://instagram.com/${v.replace(/^@+/, "")}`;
+}
 
 export const metadata: Metadata = {
   title: "About DSEC - The Committee & What We Stand For",
@@ -41,7 +54,8 @@ const values = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const team = await getTeam();
   return (
     <div>
       <JsonLd data={organizationSchema()} />
@@ -99,12 +113,11 @@ export default function AboutPage() {
                   className={`relative aspect-square overflow-hidden border-b-[3px] border-paper ${accentBg[m.accent]}`}
                 >
                   {m.image ? (
-                    <Image
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
                       src={m.image}
                       alt={m.name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover transition-transform duration-300 ease-[var(--ease-out-strong)] group-hover:scale-[1.04]"
+                      className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-out-strong)] group-hover:scale-[1.04]"
                     />
                   ) : (
                     <div className="grid h-full place-items-center">
@@ -126,7 +139,7 @@ export default function AboutPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       {m.linkedin && (
                         <a
-                          href={`https://linkedin.com${m.linkedin}`}
+                          href={linkedinHref(m.linkedin)}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="pixel-tag !bg-panel !text-blue hover:!text-paper"
@@ -136,7 +149,7 @@ export default function AboutPage() {
                       )}
                       {m.instagram && (
                         <a
-                          href={`https://instagram.com/${m.instagram.replace("@", "")}`}
+                          href={instagramHref(m.instagram)}
                           target="_blank"
                           rel="noreferrer noopener"
                           className="pixel-tag !bg-panel !text-pink hover:!text-paper"

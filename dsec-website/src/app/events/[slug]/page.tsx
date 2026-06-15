@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Banner, Poster, Gallery, Speakers, SponsorLogos } from "@/components/media";
+import { Banner, Poster, Gallery, LeadBadge, Speakers, SponsorLogos } from "@/components/media";
 import { Markdown } from "@/components/markdown";
 import { SectionHeading } from "@/components/ui";
 import { formatTicketPrice } from "@/lib/content";
@@ -122,6 +122,12 @@ export default async function EventDetailPage({ params }: Props) {
               <p className="mt-4 inline-block border-l-4 border-yellow bg-yellow/15 px-3 py-1.5 font-mono text-sm font-bold">
                 {event.outcome}
               </p>
+            )}
+
+            {event.lead && (
+              <div className="mt-6">
+                <LeadBadge lead={event.lead} label="Event lead" />
+              </div>
             )}
 
             <dl className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3">

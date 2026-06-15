@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Banner, Poster, Gallery } from "@/components/media";
+import { Banner, Poster, Gallery, LeadBadge } from "@/components/media";
 import { SectionHeading } from "@/components/ui";
 import { getProject, getProjects } from "@/lib/api";
 
@@ -90,8 +90,14 @@ export default async function ProjectDetailPage({ params }: Props) {
             <h1 className="mt-3 font-display text-4xl font-bold leading-[1.05] sm:text-5xl">
               {project.title}
             </h1>
-            {project.builtBy && (
-              <p className="mt-2 font-mono text-sm text-paper/55">built by {project.builtBy}</p>
+            {project.lead ? (
+              <div className="mt-4">
+                <LeadBadge lead={project.lead} label="Project lead" />
+              </div>
+            ) : (
+              project.builtBy && (
+                <p className="mt-2 font-mono text-sm text-paper/55">built by {project.builtBy}</p>
+              )
             )}
             <p className="mt-4 max-w-2xl text-lg text-paper/80">
               {project.description || project.blurb}

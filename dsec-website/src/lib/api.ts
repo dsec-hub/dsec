@@ -13,9 +13,12 @@ import "server-only";
 import {
   events as placeholderEvents,
   projects as placeholderProjects,
+  team as placeholderTeam,
   tiers as placeholderTiers,
   type ClubEvent,
+  type Lead,
   type MediaItem,
+  type Member,
   type Project,
   type Speaker,
   type SponsorBrand,
@@ -36,6 +39,12 @@ type ApiMedia = {
   height: number | null;
 };
 
+type ApiLead = {
+  name: string;
+  role: string | null;
+  photo: string | null;
+};
+
 type ApiProject = {
   slug: string | null;
   title: string;
@@ -49,6 +58,7 @@ type ApiProject = {
   image: string | null;
   download: string | null;
   media: ApiMedia[] | null;
+  lead?: ApiLead | null;
 };
 
 type ApiEvent = {
@@ -68,6 +78,7 @@ type ApiEvent = {
   image: string | null;
   download: string | null;
   media: ApiMedia[] | null;
+  lead?: ApiLead | null;
   speakers?: ApiSpeaker[] | null;
   sponsors?: ApiEventSponsor[] | null;
 };
@@ -93,6 +104,20 @@ type ApiSponsor = {
   website: string | null;
   logo: string | null;
   logo_png: string | null;
+};
+
+type ApiPerson = {
+  name: string;
+  role: string | null;
+  type: string | null;
+  committee: string | null;
+  bio: string | null;
+  photo: string | null;
+  photo_png: string | null;
+  instagram: string | null;
+  linkedin: string | null;
+  github: string | null;
+  website: string | null;
 };
 
 /**
@@ -164,7 +189,13 @@ function mapProject(p: ApiProject, i: number): Project {
     bannerUrl,
     posterUrl,
     gallery,
+    lead: mapLead(p.lead),
   };
+}
+
+function mapLead(l: ApiLead | null | undefined): Lead | undefined {
+  if (!l) return undefined;
+  return { name: l.name, role: l.role ?? undefined, photo: l.photo ?? undefined };
 }
 
 function mapSpeaker(s: ApiSpeaker): Speaker {
@@ -209,6 +240,7 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     bannerUrl,
     posterUrl,
     gallery,
+    lead: mapLead(e.lead),
     speakers: (e.speakers ?? []).map(mapSpeaker),
     sponsors: (e.sponsors ?? []).map(mapEventSponsor),
   };
@@ -320,4 +352,40 @@ export async function getSponsors(): Promise<SponsorBrand[]> {
     website: s.website ?? undefined,
     logo: s.logo ?? undefined,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Team / committee (the public About-page roster)
+// ---------------------------------------------------------------------------
+
+/** Map an API person onto the local `Member` card shape. The pixel-card accent
+ *  isn't stored per-person, so it's assigned deterministically by position so
+ *  the grid keeps its blue/pink/yellow/mint rhythm. */
+function mapPerson(p: ApiPerson, i: number): Member {
+  return {
+    name: p.name,
+    role: p.role ?? p.type ?? "",
+    accent: ACCENTS[i % ACCENTS.length],
+    description: p.bio ?? undefined,
+    image: p.photo ?? undefined,
+    instagram: p.instagram ?? undefined,
+    linkedin: p.linkedin ?? undefined,
+  };
+}
+
+async function getTeamFromApi(): Promise<Member[] | null> {
+  const rows = await fetchJson<ApiPerson[]>("/website/team");
+  if (!rows) return null;
+  return rows.map(mapPerson);
+}
+
+/**
+ * The committee/team for the About page. Prefers the people the exec has
+ * published (show_on_website) from the live feed; falls back to the static
+ * roster in `content.ts` when none are published or the feed is unreachable —
+ * so the page always renders a team.
+ */
+export async function getTeam(): Promise<Member[]> {
+  const rows = await getTeamFromApi();
+  return rows && rows.length > 0 ? rows : placeholderTeam;
 }

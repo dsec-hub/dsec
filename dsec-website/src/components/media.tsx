@@ -1,4 +1,4 @@
-import { type MediaItem, type Speaker, type SponsorBrand } from "@/lib/content";
+import { type Lead, type MediaItem, type Speaker, type SponsorBrand } from "@/lib/content";
 import { PixelDuck } from "@/components/pixel-duck";
 
 /* ---------- Banner: wide hero across the top of a detail page ----------
@@ -58,6 +58,33 @@ export function Speakers({ speakers }: { speakers: Speaker[] }) {
           {s.bio && <p className="mt-1 text-sm text-paper/75">{s.bio}</p>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---------- Lead: a single-person byline (avatar + name + role) ----------
+   Credits the event lead / project lead on a detail page. Falls back to the
+   mascot sprite when the person hasn't uploaded a headshot. */
+export function LeadBadge({ lead, label }: { lead: Lead; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-3 border-[3px] border-paper bg-panel p-2.5 pr-4 shadow-[4px_4px_0_0_var(--color-paper)]">
+      <div className="size-12 shrink-0 overflow-hidden border-[3px] border-paper bg-panel-2">
+        {lead.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={lead.photo} alt={lead.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center">
+            <PixelDuck name="duck-mascot" alt="" size={32} />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="font-mono text-[10px] font-bold uppercase tracking-wide text-paper/50">
+          {label}
+        </div>
+        <div className="truncate font-display text-base font-bold leading-tight">{lead.name}</div>
+        {lead.role && <div className="truncate font-mono text-xs text-paper/60">{lead.role}</div>}
+      </div>
     </div>
   );
 }

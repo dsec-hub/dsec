@@ -38,6 +38,14 @@ export type SponsorBrand = {
   logo?: string; // transparent logo (WebP)
 };
 
+/** The person leading a project/event — a public byline (name + role + photo).
+ *  Resolved from the event lead / project lead in the dsec-api feed. */
+export type Lead = {
+  name: string;
+  role?: string;
+  photo?: string; // headshot (WebP)
+};
+
 export const site = {
   name: "DSEC",
   longName: "Deakin Software Engineering Club",
@@ -73,6 +81,7 @@ export type Project = {
   title: string;
   blurb: string;
   builtBy?: string;
+  lead?: Lead; // project lead (name + role + headshot), from the API
   stack: string[];
   image: DuckName; // pixel sprite name (see PixelDuck), resolved to /public/pixel
   accent: "blue" | "pink" | "yellow" | "mint";
@@ -162,6 +171,7 @@ export type ClubEvent = {
   bannerUrl?: string; // wide hero image (WebP) for the detail page
   posterUrl?: string; // portrait key-art (WebP) for the detail page
   gallery?: MediaItem[]; // extra images for the detail-page gallery
+  lead?: Lead; // event lead (name + role + headshot), from the API
   speakers?: Speaker[]; // speakers presenting at this event
   sponsors?: SponsorBrand[]; // sponsors backing this event (logo wall)
 };

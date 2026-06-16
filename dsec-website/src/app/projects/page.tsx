@@ -49,8 +49,9 @@ export default async function ProjectsPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        {/* TEMP: project cards hidden while the projects API is wired up.
-            Restore the grid below (and remove the ComingSoon) once populated. */}
+        {/* Live projects from the API feed. In production an empty/unreachable
+            feed shows the ComingSoon state (placeholders are dev-only — see
+            lib/api.ts); locally the demo cards render so the layout is visible. */}
         {showContent ? (
           <div className="stagger grid gap-5 sm:grid-cols-2">
             {projects.map((p) => (

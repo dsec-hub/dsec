@@ -328,32 +328,41 @@ async function getEventFromApi(slug: string): Promise<ClubEvent | null> {
  * the static `content.ts` placeholders when the feed is empty/unreachable — so
  * the card + page layout is visible before any real content is entered. As soon
  * as the API returns rows, those take over automatically (it's checked first).
+ *
+ * IMPORTANT: the project/event placeholders are *fake demo data* (DuckType,
+ * "Ship It Night"). They're a dev-only scaffold so the layout renders before the
+ * feed exists — never shown in production, where an empty/unreachable feed falls
+ * through to each page's real "coming soon" empty-state instead. (Team + sponsor
+ * packages are excluded below: their placeholders are the club's real roster and
+ * pricing, so they stay as genuine fallbacks regardless of environment.)
  * ------------------------------------------------------------------------- */
+
+const SHOW_DEMO_PLACEHOLDERS = process.env.NODE_ENV !== "production";
 
 export async function getProjects(): Promise<Project[]> {
   const rows = await getProjectsFromApi();
-  return rows && rows.length > 0 ? rows : placeholderProjects;
+  if (rows && rows.length > 0) return rows;
+  return SHOW_DEMO_PLACEHOLDERS ? placeholderProjects : [];
 }
 
 export async function getEvents(): Promise<ClubEvent[]> {
   const rows = await getEventsFromApi();
-  return rows && rows.length > 0 ? rows : placeholderEvents;
+  if (rows && rows.length > 0) return rows;
+  return SHOW_DEMO_PLACEHOLDERS ? placeholderEvents : [];
 }
 
 export async function getProject(slug: string): Promise<Project | null> {
-  return (
-    (await getProjectFromApi(slug)) ??
-    placeholderProjects.find((p) => p.slug === slug) ??
-    null
-  );
+  const live = await getProjectFromApi(slug);
+  if (live) return live;
+  if (!SHOW_DEMO_PLACEHOLDERS) return null;
+  return placeholderProjects.find((p) => p.slug === slug) ?? null;
 }
 
 export async function getEvent(slug: string): Promise<ClubEvent | null> {
-  return (
-    (await getEventFromApi(slug)) ??
-    placeholderEvents.find((e) => e.slug === slug) ??
-    null
-  );
+  const live = await getEventFromApi(slug);
+  if (live) return live;
+  if (!SHOW_DEMO_PLACEHOLDERS) return null;
+  return placeholderEvents.find((e) => e.slug === slug) ?? null;
 }
 
 // ---------------------------------------------------------------------------

@@ -56,9 +56,9 @@ export default async function EventsPage() {
         </div>
       </section>
 
-      {/* Upcoming first for students, with a clear register CTA */}
-      {/* TEMP: event cards hidden while the events API is wired up. Restore the
-          block below (and remove the ComingSoon) once events are populated. */}
+      {/* Upcoming first for students, with a clear register CTA. Live from the
+          API feed; in production an empty feed shows the ComingSoon state
+          (placeholders are dev-only — see lib/api.ts). */}
       {upcoming.length > 0 && showContent && (
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <SectionHeading eyebrow="Upcoming" title="Coming up. Grab a spot.">

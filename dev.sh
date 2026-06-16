@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Run all 3 DSEC services locally.
-# dsec-website  → http://localhost:3000
-# dsec-app      → http://localhost:3001
-# dsec-api      → http://localhost:8000
+# Run all DSEC services locally.
+# dsec-website  → http://localhost:3000   (public site)
+# dsec-app      → http://localhost:3001   (member portal · app.dsec.club)
+# dsec-hub      → http://localhost:3002   (committee dashboard · hub.dsec.club)
+# dsec-api      → http://localhost:8000   (FastAPI backend)
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -33,7 +34,7 @@ echo "[dsec-api] Starting on http://localhost:8000 ..."
 ) &
 PIDS+=($!)
 
-# --- dsec-website (Next.js) ---
+# --- dsec-website (Next.js · public site) ---
 echo "[dsec-website] Starting on http://localhost:3000 ..."
 (
   cd "$ROOT/dsec-website"
@@ -42,7 +43,7 @@ echo "[dsec-website] Starting on http://localhost:3000 ..."
 ) &
 PIDS+=($!)
 
-# --- dsec-app (Next.js) ---
+# --- dsec-app (Next.js · member portal) ---
 echo "[dsec-app] Starting on http://localhost:3001 ..."
 (
   cd "$ROOT/dsec-app"
@@ -51,11 +52,21 @@ echo "[dsec-app] Starting on http://localhost:3001 ..."
 ) &
 PIDS+=($!)
 
+# --- dsec-hub (Next.js · committee dashboard) ---
+echo "[dsec-hub] Starting on http://localhost:3002 ..."
+(
+  cd "$ROOT/dsec-hub"
+  [ ! -d "node_modules" ] && npm install -q
+  npm run dev -- --port 3002
+) &
+PIDS+=($!)
+
 echo ""
 echo "All services starting. Logs are interleaved below."
-echo "  dsec-website  → http://localhost:3000"
-echo "  dsec-app      → http://localhost:3001"
-echo "  dsec-api      → http://localhost:8000"
+echo "  dsec-website  → http://localhost:3000   (public site)"
+echo "  dsec-app      → http://localhost:3001   (member portal)"
+echo "  dsec-hub      → http://localhost:3002   (committee dashboard)"
+echo "  dsec-api      → http://localhost:8000   (API)"
 echo "Press Ctrl+C to stop all."
 echo ""
 

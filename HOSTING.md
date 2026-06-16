@@ -11,24 +11,34 @@ This is the comprehensive version; the older `DEPLOY.md` only covered the dashbo
 | Domain | App | Folder | Host | Talks to |
 |---|---|---|---|---|
 | `dsec.club` | Public website | `dsec-website` | Vercel | → `api.dsec.club` (public feed), Resend, Telegram, Notion |
-| `app.dsec.club` | Exec dashboard | `dsec-app` | Vercel | → Neon (direct), → `api.dsec.club` (AI notes + image upload) |
+| `app.dsec.club` | Member portal | `dsec-app` | Vercel | → `api.dsec.club` (public feed); Neon wired but not yet queried |
+| `hub.dsec.club` | Committee dashboard | `dsec-hub` | Vercel | → Neon (direct), → `api.dsec.club` (AI notes + image upload) |
 | `api.dsec.club` | Backend API + MCP | `dsec-api` | Vercel | → Neon, Anthropic, Supabase, Tally |
 
-**Single database:** `dsec-app` and `dsec-api` share one Neon Postgres DB. `dsec-api`
-**owns the core schema** (Alembic migrations); `dsec-app` adds a few app-owned tables
-(roles/settings/committee) via its own scripts. `dsec-website` has **no** DB access —
-it reads everything through the API's public `/website` feed.
+> **Migration (2026-06-16):** the committee dashboard moved from `app.dsec.club`
+> to **`hub.dsec.club`** — the folder was renamed `dsec-app` → `dsec-hub`.
+> `app.dsec.club` is now the new **member portal** (a fresh `dsec-app`). On Vercel:
+> add a **new project for `dsec-hub` → `hub.dsec.club`**, and note the existing
+> `app.dsec.club` project's **Root Directory is still `dsec-app`**, which now builds
+> the portal — so it will start serving the portal on the next deploy. Don't deploy
+> the half-built portal to `app.dsec.club` until `dsec-hub`/`hub.dsec.club` is live.
+
+**Single database:** `dsec-hub` and `dsec-api` share one Neon Postgres DB. `dsec-api`
+**owns the core schema** (Alembic migrations); `dsec-hub` adds a few app-owned tables
+(roles/settings/committee) via its own scripts. The member portal (`dsec-app`) and
+`dsec-website` have **no** direct DB access — they read everything through the API's
+public `/website` feed.
 
 ### Deploy order (each stage depends on the previous)
 1. **Neon** — provision the database.
 2. **dsec-api** — migrate the schema, mint API keys, deploy, point `api.dsec.club`.
-3. **dsec-app** — run the app-owned setup scripts, create a login, deploy, point `app.dsec.club`.
+3. **dsec-hub** — run the app-owned setup scripts, create a login, deploy, point `hub.dsec.club`. *(The member portal `dsec-app` deploys to `app.dsec.club` — minimal for now.)*
 4. **dsec-website** — verify the email domain, deploy, point `dsec.club`.
 5. **Gmail Apps Scripts** + **mailboxes** — turn on ingestion and inbound email.
 6. **Verify** everything end to end.
 
 ### Accounts/services you'll need
-- **Vercel** (3 projects), **Neon** (1 Postgres DB), **Cloudflare** (DNS for `dsec.club`), **Hostinger** (mailboxes for `dsec.club`).
+- **Vercel** (4 projects: website, portal, hub, api), **Neon** (1 Postgres DB), **Cloudflare** (DNS for `dsec.club`), **Hostinger** (mailboxes for `dsec.club`).
 - **Anthropic** API key — *only if you use AI features* (email drafting, meeting notes).
 - **Supabase** — *only if you want event/project images* (free; a public Storage bucket).
 - **Resend** — for the website's sponsor/contact emails and dashboard member invites.
@@ -48,7 +58,7 @@ it reads everything through the API's public `/website` feed.
    postgresql://neondb_owner:<PASSWORD>@ep-xxxx-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require
    ```
    - For `dsec-api` (Python/psycopg) you can use either `postgresql://` or `postgresql+psycopg://`.
-   - Use this **same pooled string** for both `dsec-api` and `dsec-app`.
+   - Use this **same pooled string** for `dsec-api` and `dsec-hub` (and `dsec-app` once it queries Neon directly).
 
 ---
 

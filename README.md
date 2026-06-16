@@ -6,7 +6,7 @@ boundaries.
 
 ```
                          ┌─────────────────────────────┐
-        exec edits  ───► │  dsec-app  (Next.js 16)      │
+        exec edits  ───► │  dsec-hub  (Next.js 16)      │
                          │  NextAuth-gated CRUD dashboard│
                          └──────────────┬──────────────┘
                                         │ reads + writes (Drizzle)
@@ -23,25 +23,27 @@ boundaries.
                          └─────────────────────────────┘
 
    dsec-website (Next.js) — public marketing site (separate concern)
+   dsec-app     (Next.js) — member portal · app.dsec.club (reads via the API)
 ```
 
 There is **no Notion** in the loop: the committee edits everything directly in
-`dsec-app`, and Neon is authoritative. (An earlier scaffold synced from Notion;
+`dsec-hub`, and Neon is authoritative. (An earlier scaffold synced from Notion;
 that was removed in favour of a single source of truth.)
 
-## The three apps
+## The apps
 
 | App | Stack | Responsibility |
 |---|---|---|
-| **`dsec-app/`** | Next.js 16 (App Router, Turbopack), Tailwind v4, Auth.js v5, Drizzle | Internal exec dashboard. Per-person login. Full CRUD over events, people, sponsors, finance. The team's day-to-day tool. |
+| **`dsec-hub/`** | Next.js 16 (App Router, Turbopack), Tailwind v4, Auth.js v5, Drizzle | Committee dashboard (was `dsec-app`; now at `hub.dsec.club`). Per-person login. Full CRUD over events, people, sponsors, finance. The team's day-to-day tool. |
+| **`dsec-app/`** | Next.js 16 (App Router), Tailwind v4 | Member portal at `app.dsec.club`. Shares the design system + illustrations with `dsec-website`; reads the API feed. Minimal v1 — member auth + feature pages to come. |
 | **`dsec-api/`** | FastAPI, SQLAlchemy, Alembic, Anthropic (Claude) | Workspace backend + email agent (`/email/process`: spam-gate → classify → draft, never auto-sends) + public website feed + MCP server, all scoped, rate-limited, cost-capped. **Owns the Neon schema** (models + migrations). |
 | **`dsec-website/`** | Next.js 16 | Public marketing site. Independent of the data layer. |
 
 ### Why `dsec-api` owns the schema
 
 `dsec-api` defines the database tables (SQLAlchemy models + Alembic migrations),
-even though `dsec-app` is the primary read/writer. This keeps one authoritative
-schema definition; `dsec-app` introspects the live tables with `drizzle-kit pull`
+even though `dsec-hub` is the primary read/writer. This keeps one authoritative
+schema definition; `dsec-hub` introspects the live tables with `drizzle-kit pull`
 rather than redefining them. DB-level defaults let both writers (Python and
 Node) insert safely.
 

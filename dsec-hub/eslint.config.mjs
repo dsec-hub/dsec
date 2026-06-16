@@ -12,11 +12,23 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Installed agent skills are vendored scripts, not site code.
-    ".agents/**",
+    // Agent/skill tooling vendored under the project — not app source.
     ".claude/**",
-    ".venv/**",
+    ".agents/**",
   ]),
+  {
+    // Honour the `_`-prefix convention for intentionally-unused bindings.
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

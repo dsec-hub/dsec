@@ -178,6 +178,16 @@ export type ClubEvent = {
   speakers?: Speaker[]; // speakers presenting at this event
   sponsors?: SponsorBrand[]; // sponsors backing this event (logo wall)
   partners?: SponsorBrand[]; // collaborator clubs co-hosting this event (published only)
+  relatedEvents?: RelatedEvent[]; // other published events visibly linked to this one
+};
+
+/** A published event linked to another (a visual-only relation). Just enough to
+ * render a clickable list item that deep-links to the related event's page. */
+export type RelatedEvent = {
+  slug: string;
+  title: string;
+  label?: string; // optional relation label, e.g. "Series"
+  status: "past" | "upcoming";
 };
 
 /** Format one tier's price for display: null → "—", 0 → "Free", else AUD. */

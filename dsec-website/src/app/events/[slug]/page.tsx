@@ -188,6 +188,38 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* Related events — other published events linked to this one */}
+        {event.relatedEvents && event.relatedEvents.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Related" title="Part of the story.">
+              Other events connected to {event.title}.
+            </SectionHeading>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {event.relatedEvents.map((r) => (
+                <li key={r.slug}>
+                  <Link
+                    href={`/events/${r.slug}`}
+                    className="group flex items-center justify-between gap-3 border-[3px] border-paper bg-panel p-4 transition-colors hover:bg-panel-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate font-bold">{r.title}</span>
+                        {r.label && <span className="pixel-tag !bg-yellow text-ink">{r.label}</span>}
+                      </div>
+                      <span className="font-mono text-xs uppercase tracking-wide text-paper/50">
+                        {r.status === "upcoming" ? "● upcoming" : "✓ past"}
+                      </span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-paper/40 transition-transform group-hover:translate-x-0.5 group-hover:text-paper">
+                      →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Gallery — any extra uploaded content, with its own empty state */}
         <div className="mt-14">
           <SectionHeading eyebrow="Gallery" title="From the event.">

@@ -97,6 +97,9 @@ set the URL to `https://api.dsec.club/mcp`, and add the header
 - `list_event_partners` — List the partner orgs co-hosting an event.
 - `link_event_partner` _(write)_ — Link a partner org to an event (idempotent).
 - `unlink_event_partner` _(write)_ — Remove a partner org from an event.
+- `list_event_connections` — List events visibly connected to this one (related-events links).
+- `link_event_connection` _(write)_ — Connect two events so each shows the other as related (visual-only).
+- `unlink_event_connection` _(write)_ — Remove the connection between two events.
 
 ### Partners
 - `list_partners` — List collaborator clubs / partner organisations.

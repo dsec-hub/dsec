@@ -20,6 +20,7 @@ import {
   type MediaItem,
   type Member,
   type Project,
+  type RelatedEvent,
   type Speaker,
   type SponsorBrand,
   type Tier,
@@ -82,6 +83,14 @@ type ApiEvent = {
   speakers?: ApiSpeaker[] | null;
   sponsors?: ApiEventSponsor[] | null;
   partners?: ApiEventPartner[] | null;
+  related_events?: ApiRelatedEvent[] | null;
+};
+
+type ApiRelatedEvent = {
+  slug: string;
+  title: string;
+  label: string | null;
+  upcoming: boolean;
 };
 
 type ApiSpeaker = {
@@ -268,6 +277,15 @@ function mapEventPartner(p: ApiEventPartner): SponsorBrand {
   };
 }
 
+function mapRelatedEvent(e: ApiRelatedEvent): RelatedEvent {
+  return {
+    slug: e.slug,
+    title: e.title,
+    label: e.label ?? undefined,
+    status: e.upcoming ? "upcoming" : "past",
+  };
+}
+
 function mapEvent(e: ApiEvent, i: number): ClubEvent {
   const { bannerUrl, posterUrl, gallery } = splitMedia(e.media);
   return {
@@ -296,6 +314,7 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     speakers: (e.speakers ?? []).map(mapSpeaker),
     sponsors: (e.sponsors ?? []).map(mapEventSponsor),
     partners: (e.partners ?? []).map(mapEventPartner),
+    relatedEvents: (e.related_events ?? []).map(mapRelatedEvent),
   };
 }
 

@@ -81,6 +81,7 @@ type ApiEvent = {
   lead?: ApiLead | null;
   speakers?: ApiSpeaker[] | null;
   sponsors?: ApiEventSponsor[] | null;
+  partners?: ApiEventPartner[] | null;
 };
 
 type ApiSpeaker = {
@@ -95,6 +96,14 @@ type ApiEventSponsor = {
   name: string;
   website: string | null;
   tier: string | null;
+  logo: string | null;
+  logo_png: string | null;
+};
+
+type ApiEventPartner = {
+  name: string;
+  website: string | null;
+  role: string | null;
   logo: string | null;
   logo_png: string | null;
 };
@@ -150,12 +159,32 @@ function apiBase(): string | null {
   return b ? b.replace(/\/+$/, "") : null;
 }
 
-async function fetchJson<T>(path: string): Promise<T | null> {
+/**
+ * Shared cache tag on every feed fetch. The dashboard POSTs to `/api/revalidate`
+ * with a feed tag (`events`, `projects`, …) after a write so only that feed
+ * refreshes; pinging this `website` tag flushes all of them at once (used by
+ * media uploads, which can touch any feed). See `app/api/revalidate/route.ts`.
+ */
+const SITE_TAG = "website";
+
+/**
+ * Safety-net lifetime (seconds). On-demand tag invalidation does the real work —
+ * an idle site now makes ZERO API calls instead of refetching every 5 minutes.
+ * This fallback only guarantees the site self-heals within a day if a
+ * revalidation ping is ever missed (dashboard offline, transient network error).
+ * Set to `false` to cache indefinitely and rely entirely on the pings.
+ */
+const FALLBACK_REVALIDATE = 86_400; // 24h
+
+async function fetchJson<T>(path: string, tags: string[] = []): Promise<T | null> {
   const base = apiBase();
   if (!base) return null;
   try {
-    // Revalidate every 5 minutes — the public feed changes slowly.
-    const res = await fetch(`${base}${path}`, { next: { revalidate: 300 } });
+    // Cache until the dashboard invalidates a matching tag (on-demand), with a
+    // 24h fallback as insurance. Replaces the old fixed 5-minute poll.
+    const res = await fetch(`${base}${path}`, {
+      next: { tags: [SITE_TAG, ...tags], revalidate: FALLBACK_REVALIDATE },
+    });
     if (!res.ok) {
       // The placeholder fallback is intentional, but in dev surface WHY the live
       // feed didn't load (so a misconfigured DSEC_API_URL / a 500 is diagnosable).
@@ -228,6 +257,17 @@ function mapEventSponsor(s: ApiEventSponsor): SponsorBrand {
   };
 }
 
+// Partners reuse the SponsorBrand shape for the logo wall; the per-event "role"
+// label (e.g. "Co-host") maps onto `tier`.
+function mapEventPartner(p: ApiEventPartner): SponsorBrand {
+  return {
+    name: p.name,
+    website: p.website ?? undefined,
+    tier: p.role ?? undefined,
+    logo: p.logo ?? undefined,
+  };
+}
+
 function mapEvent(e: ApiEvent, i: number): ClubEvent {
   const { bannerUrl, posterUrl, gallery } = splitMedia(e.media);
   return {
@@ -255,28 +295,29 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     lead: mapLead(e.lead),
     speakers: (e.speakers ?? []).map(mapSpeaker),
     sponsors: (e.sponsors ?? []).map(mapEventSponsor),
+    partners: (e.partners ?? []).map(mapEventPartner),
   };
 }
 
 async function getProjectsFromApi(): Promise<Project[] | null> {
-  const rows = await fetchJson<ApiProject[]>("/website/projects");
+  const rows = await fetchJson<ApiProject[]>("/website/projects", ["projects"]);
   if (!rows) return null;
   return rows.map(mapProject);
 }
 
 async function getProjectFromApi(slug: string): Promise<Project | null> {
-  const row = await fetchJson<ApiProject>(`/website/projects/${encodeURIComponent(slug)}`);
+  const row = await fetchJson<ApiProject>(`/website/projects/${encodeURIComponent(slug)}`, ["projects"]);
   return row ? mapProject(row, 0) : null;
 }
 
 async function getEventsFromApi(): Promise<ClubEvent[] | null> {
-  const rows = await fetchJson<ApiEvent[]>("/website/events");
+  const rows = await fetchJson<ApiEvent[]>("/website/events", ["events"]);
   if (!rows) return null;
   return rows.map(mapEvent);
 }
 
 async function getEventFromApi(slug: string): Promise<ClubEvent | null> {
-  const row = await fetchJson<ApiEvent>(`/website/events/${encodeURIComponent(slug)}`);
+  const row = await fetchJson<ApiEvent>(`/website/events/${encodeURIComponent(slug)}`, ["events"]);
   return row ? mapEvent(row, 0) : null;
 }
 
@@ -330,7 +371,7 @@ type ApiSponsorPackage = {
 };
 
 async function getPackagesFromApi(): Promise<Tier[] | null> {
-  const rows = await fetchJson<ApiSponsorPackage[]>("/website/sponsor-packages");
+  const rows = await fetchJson<ApiSponsorPackage[]>("/website/sponsor-packages", ["packages"]);
   if (!rows || rows.length === 0) return null;
   return rows.map((p) => ({
     name: p.name,
@@ -357,7 +398,7 @@ export async function getPackages(): Promise<Tier[]> {
  * doesn't render — no placeholder, since fake logos would be misleading.
  */
 export async function getSponsors(): Promise<SponsorBrand[]> {
-  const rows = await fetchJson<ApiSponsor[]>("/website/sponsors");
+  const rows = await fetchJson<ApiSponsor[]>("/website/sponsors", ["sponsors"]);
   if (!rows) return [];
   return rows.map((s) => ({
     name: s.name,
@@ -386,7 +427,7 @@ function mapPerson(p: ApiPerson, i: number): Member {
 }
 
 async function getTeamFromApi(): Promise<Member[] | null> {
-  const rows = await fetchJson<ApiPerson[]>("/website/team");
+  const rows = await fetchJson<ApiPerson[]>("/website/team", ["team"]);
   if (!rows) return null;
   return rows.map(mapPerson);
 }

@@ -177,6 +177,7 @@ export type ClubEvent = {
   lead?: Lead; // event lead (name + role + headshot), from the API
   speakers?: Speaker[]; // speakers presenting at this event
   sponsors?: SponsorBrand[]; // sponsors backing this event (logo wall)
+  partners?: SponsorBrand[]; // collaborator clubs co-hosting this event (published only)
 };
 
 /** Format one tier's price for display: null → "—", 0 → "Free", else AUD. */

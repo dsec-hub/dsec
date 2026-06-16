@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Banner, Poster, Gallery, LeadBadge } from "@/components/media";
+import { Markdown } from "@/components/markdown";
 import { SectionHeading } from "@/components/ui";
 import { getProject, getProjects } from "@/lib/api";
 
@@ -99,9 +100,9 @@ export default async function ProjectDetailPage({ params }: Props) {
                 <p className="mt-2 font-mono text-sm text-paper/55">built by {project.builtBy}</p>
               )
             )}
-            <p className="mt-4 max-w-2xl text-lg text-paper/80">
-              {project.description || project.blurb}
-            </p>
+            {project.blurb && project.blurb !== project.description && (
+              <p className="mt-4 max-w-2xl text-lg text-paper/80">{project.blurb}</p>
+            )}
 
             {project.stack.length > 0 && (
               <div className="mt-6">
@@ -117,6 +118,18 @@ export default async function ProjectDetailPage({ params }: Props) {
             )}
           </div>
         </div>
+
+        {/* About — free-form Markdown body, only when the project has one */}
+        {project.description && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="About" title="What we built.">
+              The full story behind {project.title}.
+            </SectionHeading>
+            <div className="mt-6 max-w-3xl text-lg">
+              <Markdown content={project.description} />
+            </div>
+          </div>
+        )}
 
         {/* Gallery — screenshots / extra content, with its own empty state */}
         <div className="mt-14">

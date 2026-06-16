@@ -176,6 +176,18 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* Partners — collaborator clubs, only the ones published */}
+        {event.partners && event.partners.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Partners" title="In collaboration with.">
+              {event.title} is run together with these clubs and organisations.
+            </SectionHeading>
+            <div className="mt-6">
+              <SponsorLogos sponsors={event.partners} />
+            </div>
+          </div>
+        )}
+
         {/* Gallery — any extra uploaded content, with its own empty state */}
         <div className="mt-14">
           <SectionHeading eyebrow="Gallery" title="From the event.">

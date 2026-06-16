@@ -436,6 +436,27 @@ export async function getSponsors(): Promise<SponsorBrand[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Published partners (collaborator-club logo wall)
+// ---------------------------------------------------------------------------
+
+/**
+ * Partners (collaborator clubs) the exec has published (show_on_website), for
+ * the About page's "clubs & partners we work with" wall. Reuses the sponsor
+ * logo shape (name + website + logo); logos are optional here, so the wall
+ * renders the club name when a partner hasn't uploaded one. Returns [] on any
+ * failure so the section simply doesn't render.
+ */
+export async function getPartners(): Promise<SponsorBrand[]> {
+  const rows = await fetchJson<ApiSponsor[]>("/website/partners", ["partners"]);
+  if (!rows) return [];
+  return rows.map((p) => ({
+    name: p.name,
+    website: p.website ?? undefined,
+    logo: p.logo ?? undefined,
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Team / committee (the public About-page roster)
 // ---------------------------------------------------------------------------
 

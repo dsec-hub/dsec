@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui";
+import { SponsorLogos } from "@/components/media";
 import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
-import { getTeam } from "@/lib/api";
+import { getPartners, getTeam } from "@/lib/api";
 import { organizationSchema } from "@/lib/schema";
 import { accentBg, site } from "@/lib/content";
 
@@ -55,7 +56,7 @@ const values = [
 ];
 
 export default async function AboutPage() {
-  const team = await getTeam();
+  const [team, partners] = await Promise.all([getTeam(), getPartners()]);
   return (
     <div>
       <JsonLd data={organizationSchema()} />
@@ -180,6 +181,22 @@ export default async function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* Clubs & partners — real logo wall, only when partners are published */}
+      {partners.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <SectionHeading
+            eyebrow="Who we work with"
+            title="Clubs & partners we work with."
+          >
+            The student clubs and organisations we collaborate with on events and
+            projects.
+          </SectionHeading>
+          <div className="mt-8">
+            <SponsorLogos sponsors={partners} center />
+          </div>
+        </section>
+      )}
 
       {/* Affiliation + contact */}
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">

@@ -109,7 +109,10 @@ Put the pooled Neon string in `dsec-api/.env` (or `export DATABASE_URL=...`), th
 | `RUN_MIGRATIONS_ON_STARTUP` | ✅ | `false` (you migrate as a step) |
 | `DASHBOARD_USER` | ✅ | basic-auth user for `/dashboard`, `/docs`, `/admin` |
 | `DASHBOARD_PASS` | ✅ | a strong password |
-| `AGENT_SECRET` | ✅ rec. | `openssl rand -base64 32` (guards the dormant `/email/process`) |
+| `AGENT_SECRET` | ✅ rec. | `openssl rand -base64 32` (guards `/email/process` **and** signs OAuth login requests) |
+| `OAUTH_ENABLED` | default `true` | OAuth login for MCP clients (Claude.ai connect-with-login). Set `false` to disable. |
+| `OAUTH_ISSUER` | ✅ rec. | `https://api.dsec.club` — pins the OAuth issuer so it can't be set via a spoofed Host header. Blank = derive from the request. |
+| `OAUTH_ACCESS_TOKEN_TTL` / `OAUTH_REFRESH_TOKEN_TTL` / `OAUTH_AUTH_CODE_TTL` | defaults | token lifetimes (1h / 60d / 10m) |
 | `ANTHROPIC_API_KEY` | ⚠️ AI only | `sk-ant-…` — email drafting + meeting notes; **not** needed for capture-only |
 | `ANTHROPIC_MODEL` | default | `claude-haiku-4-5-20251001` |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | ⚠️ images | server-side only (see Stage 2.4) |

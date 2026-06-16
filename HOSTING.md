@@ -157,7 +157,15 @@ npx tsx scripts/create-user.ts exec@dsec.club 'a-strong-password' 'Your Name'
 | `APP_URL` | ✅ | `https://app.dsec.club` (used in invite links) |
 | `DSEC_API_URL` | ⚠️ AI/media | `https://api.dsec.club` |
 | `DSEC_API_KEY` | ⚠️ AI/media | the **`trigger,write`** key from Stage 2.2 |
+| `DSEC_WEBSITE_URL` | ⚠️ live edits | `https://dsec.club` — where to send cache-refresh pings after a content write |
+| `REVALIDATE_SECRET` | ⚠️ live edits | `openssl rand -base64 32` — **must match** the website's value (Stage 4) |
 | `RESEND_API_KEY` | optional | member-invite emails (logs the link if unset) |
+
+> **Live edits:** without `DSEC_WEBSITE_URL` + `REVALIDATE_SECRET`, the dashboard's
+> `revalidateWebsite()` ping silently no-ops, so new/edited events, projects, team
+> and sponsors don't show on `dsec.club` until its 24h cache fallback expires (and
+> a statically-rendered list page may need a redeploy). Set both here **and** the
+> matching `REVALIDATE_SECRET` on dsec-website for edits to appear within seconds.
 
 - **Deploy**, then add **Domains → `app.dsec.club`** (CNAME in Stage 5). Sign in with the login from 3.1.
 
@@ -177,6 +185,7 @@ The site sends from `noreply@dsec.club`, so the domain must be verified:
 | Var | Needed | Value |
 |---|---|---|
 | `DSEC_API_URL` | rec. | `https://api.dsec.club` (live projects/events; blank → "coming soon" placeholders) |
+| `REVALIDATE_SECRET` | ⚠️ live edits | **same value** as on dsec-app (Stage 3) — lets the dashboard refresh this site's cache on a write; unset → edits lag up to 24h |
 | `RESEND_API_KEY` | ✅ forms | from 4.1 |
 | `EMAIL_FROM` | ✅ forms | `"DSEC <noreply@dsec.club>"` |
 | `SPONSOR_INBOX` | ✅ forms | e.g. `admin@dsec.club` (a real mailbox/forwarder) |

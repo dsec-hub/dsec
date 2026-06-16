@@ -5,8 +5,8 @@ import { BookMeetingButton } from "@/components/book-meeting-button";
 import { SectionHeading, EventCard } from "@/components/ui";
 import { SponsorLogos } from "@/components/media";
 import { PixelDuck } from "@/components/pixel-duck";
-import { stats, projects } from "@/lib/content";
-import { getEvents, getPackages, getSponsors } from "@/lib/api";
+import { stats } from "@/lib/content";
+import { getEvents, getProjects, getPackages, getSponsors } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Sponsor DSEC - Reach Deakin Software Talent",
@@ -31,8 +31,9 @@ export const metadata: Metadata = {
 export default async function SponsorPage() {
   // Live events when present, else the static proof list (same fallback as the
   // rest of the site), so the cards always link to a real detail page.
-  const [flagship, tiers, sponsors] = await Promise.all([
+  const [flagship, projects, tiers, sponsors] = await Promise.all([
     getEvents().then((evts) => evts.filter((e) => e.status === "past").slice(0, 2)),
+    getProjects().then((all) => all.slice(0, 6)),
     getPackages(),
     getSponsors(),
   ]);
@@ -136,17 +137,20 @@ export default async function SponsorPage() {
             ))}
           </div>
 
-          {/* shipped projects strip */}
-          <div className="mt-6">
-            <p className="eyebrow">Members ship real software</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {projects.map((p) => (
-                <span key={p.slug} className="pixel-tag !bg-panel">
-                  {p.title} · {p.stack[0]}
-                </span>
-              ))}
+          {/* shipped projects strip — live from the feed, hidden when empty */}
+          {projects.length > 0 && (
+            <div className="mt-6">
+              <p className="eyebrow">Members ship real software</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {projects.map((p) => (
+                  <span key={p.slug} className="pixel-tag !bg-panel">
+                    {p.title}
+                    {p.stack[0] ? ` · ${p.stack[0]}` : ""}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </section>

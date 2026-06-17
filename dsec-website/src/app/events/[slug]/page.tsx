@@ -220,23 +220,17 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Gallery — any extra uploaded content, with its own empty state */}
-        <div className="mt-14">
-          <SectionHeading eyebrow="Gallery" title="From the event.">
-            Photos and content from {event.title}.
-          </SectionHeading>
-          <div className="mt-6">
-            <Gallery
-              items={event.gallery ?? []}
-              emptyLabel={isUpcoming ? "photos coming soon" : "no photos yet"}
-              emptyHint={
-                isUpcoming
-                  ? "Come along — photos from the day will land here afterwards."
-                  : "Photos from this event will appear here once they're added."
-              }
-            />
+        {/* Gallery — any extra uploaded content, only when there are images */}
+        {event.gallery && event.gallery.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Gallery" title="From the event.">
+              Photos and content from {event.title}.
+            </SectionHeading>
+            <div className="mt-6">
+              <Gallery items={event.gallery} />
+            </div>
           </div>
-        </div>
+        )}
       </section>
     </div>
   );

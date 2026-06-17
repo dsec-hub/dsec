@@ -131,19 +131,17 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Gallery — screenshots / extra content, with its own empty state */}
-        <div className="mt-14">
-          <SectionHeading eyebrow="Gallery" title="A closer look.">
-            Screenshots and content from {project.title}.
-          </SectionHeading>
-          <div className="mt-6">
-            <Gallery
-              items={project.gallery ?? []}
-              emptyLabel="no screenshots yet"
-              emptyHint="Screenshots and other content for this project will appear here once they're added."
-            />
+        {/* Gallery — screenshots / extra content, only when there are images */}
+        {project.gallery && project.gallery.length > 0 && (
+          <div className="mt-14">
+            <SectionHeading eyebrow="Gallery" title="A closer look.">
+              Screenshots and content from {project.title}.
+            </SectionHeading>
+            <div className="mt-6">
+              <Gallery items={project.gallery} />
+            </div>
           </div>
-        </div>
+        )}
       </section>
     </div>
   );

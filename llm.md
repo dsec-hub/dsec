@@ -13,12 +13,16 @@ change writes to the club's single source of truth and shows up in the dashboard
 
 ## What this key can do
 
-- `read` — **yes**. View workspace data — members, finances, events, projects, tasks, meetings, documents, sponsors, partners and people.
-- `write` — **yes**. Create and update workspace data — events (plus speaker, sponsor and partner line-ups), projects, task boards, meetings, documents, sponsors (pipeline, packages, leads, contacts), partners and people.
+- `read` — **yes**. View workspace data — members, events, projects, tasks, meetings, documents, partners and people (a legacy read key also covers the isolated Sponsors and Finance modules).
+- `write` — **yes**. Create and update workspace data — events (plus speaker, sponsor and partner line-ups), projects, task boards, meetings, documents, partners and people (a legacy write key also covers the isolated Sponsors and Finance modules).
 - `trigger` — **yes**. Run AI features that spend tokens — currently generating meeting notes and action items from a transcript.
 - `ingest` — no. Import the weekly DUSA membership / P&L spreadsheets. Admin-only and used by the ingestion pipeline over REST — there are no MCP tools for it.
+- `read:sponsors` — no. View only the sponsorship pipeline — sponsors, contacts, packages and inbound leads (the isolated Sponsors module).
+- `write:sponsors` — no. Create and update the sponsorship pipeline — sponsors, contacts, packages and leads. Implies read:sponsors.
+- `read:finance` — no. View only the club finances — the term P&L summary and ledger lines (the isolated Finance module).
+- `write:finance` — no. Set event budgets and auto-applied grants. Implies read:finance.
 
-Scopes are **coarse and global**: a `write` key can write *every* module (not just one), and a `read` key can read everything. They are bounded by the dashboard role of whoever minted the key, not by module.
+Most scopes are **coarse and global**: a legacy `write` key can write *every* module and a legacy `read` key can read everything. The **Sponsors** and **Finance** modules are **isolated** — their tools require the matching `read:sponsors` / `write:sponsors` / `read:finance` / `write:finance` scope (a legacy `read`/`write` key still covers them for backwards compatibility). What a key holds is bounded by the dashboard role of whoever minted it.
 
 ## Connect (the human does this once)
 
@@ -84,15 +88,18 @@ expose a header field can instead use `https://api.dsec.club/mcp` with
 
 ### Members
 - `list_members` — List club members (the paid roster from the weekly DUSA import).
+- `get_member` — Get one club member by id.
 - `member_stats` — Member counts and the week-by-week membership trend.
 
 ### Finance
 - `finance_summary` — Opening balance, income, expenses and closing balance for the term.
 - `list_transactions` — Profit-and-loss ledger lines.
+- `list_finance_reports` — List the imported P&L reports (one per weekly finance import), newest first.
 - `set_event_budget` _(write)_ — Set an event's budget (auto-applies the standard grant).
 
 ### Events
 - `list_events` — List club events (drafts and published).
+- `get_event` — Get one event by id (full detail).
 - `create_event` _(write)_ — Create an event. It stays a private draft until is_public=true.
 - `update_event` _(write)_ — Update fields on an existing event.
 - `archive_event` _(write)_ — Soft-delete (archive) an event. Confirm with the human first.
@@ -116,25 +123,36 @@ expose a header field can instead use `https://api.dsec.club/mcp` with
 
 ### Partners
 - `list_partners` — List collaborator clubs / partner organisations.
+- `get_partner` — Get one partner org / club by id.
 - `create_partner` _(write)_ — Add a partner org / club.
 - `update_partner` _(write)_ — Update a partner's details.
+- `archive_partner` _(write)_ — Soft-delete (archive) a partner org. Confirm with the human first.
 
 ### Projects
 - `list_projects` — List community projects.
+- `get_project` — Get one community project by id (full detail).
 - `create_project` _(write)_ — Create a project. It stays a draft until is_public=true.
 - `update_project` _(write)_ — Update fields on a project.
+- `archive_project` _(write)_ — Soft-delete (archive) a project. Confirm with the human first.
 
 ### Tasks
 - `list_boards` — List task boards and their columns.
 - `create_board` _(write)_ — Create a task board.
+- `update_board` _(write)_ — Update a task board's name, description, committee or columns.
+- `archive_board` _(write)_ — Soft-delete (archive) a task board. Confirm with the human first.
 - `list_tasks` — List task cards (filterable by board, column, assignee, …).
+- `get_task` — Get one task card by id (full detail).
 - `create_task` _(write)_ — Create a task card.
 - `update_task` _(write)_ — Update a task's fields and cross-entity links.
 - `move_task` _(write)_ — Move a task to a column and position.
+- `archive_task` _(write)_ — Soft-delete (archive) a task card. Confirm with the human first.
 
 ### Meetings
 - `list_meetings` — List meetings.
+- `get_meeting` — Get one meeting by id (transcript, notes, action items).
 - `create_meeting` _(write)_ — Create a meeting record.
+- `update_meeting` _(write)_ — Update a meeting (edit transcript, or hand-write notes/action items).
+- `archive_meeting` _(write)_ — Soft-delete (archive) a meeting. Confirm with the human first.
 - `generate_meeting_notes` _(AI — spends tokens)_ — AI-summarise a transcript into notes and action items (spends tokens).
 
 ### Documents
@@ -142,11 +160,14 @@ expose a header field can instead use `https://api.dsec.club/mcp` with
 - `get_document` — Get one document with its full Markdown content.
 - `create_document` _(write)_ — Create a document.
 - `update_document` _(write)_ — Update a document's title, content, status or assignee.
+- `archive_document` _(write)_ — Soft-delete (archive) a document. Confirm with the human first.
 
 ### Sponsors
 - `list_sponsors` — List sponsorship leads / relationships in the pipeline.
+- `get_sponsor` — Get one sponsor / pipeline relationship by id.
 - `create_sponsor` _(write)_ — Add a sponsorship lead.
 - `update_sponsor` _(write)_ — Advance a sponsor through the pipeline / edit its details.
+- `archive_sponsor` _(write)_ — Soft-delete (archive) a sponsor. Confirm with the human first.
 
 ### Sponsor contacts
 - `list_sponsor_contacts` — List the people attached to a sponsor.
@@ -156,6 +177,7 @@ expose a header field can instead use `https://api.dsec.club/mcp` with
 
 ### Sponsor packages
 - `list_sponsor_packages` — List the sponsorship tiers shown on the website.
+- `get_sponsor_package` — Get one sponsorship package / tier by id.
 - `create_sponsor_package` _(write)_ — Add a sponsorship package / tier.
 - `update_sponsor_package` _(write)_ — Update a sponsorship package.
 - `delete_sponsor_package` _(write)_ — Permanently delete a sponsorship package. Confirm with the human first.
@@ -166,8 +188,10 @@ expose a header field can instead use `https://api.dsec.club/mcp` with
 
 ### People
 - `list_people` — List people (exec, committee, external contacts) — use this to resolve assignees.
+- `get_person` — Get one person by id (committee member or external contact).
 - `create_person` _(write)_ — Add a person (committee member or external contact).
 - `update_person` _(write)_ — Update a person's details.
+- `archive_person` _(write)_ — Soft-delete (archive) a person. Confirm with the human first.
 
 ### Media & attachments
 - `list_media` — List images attached to an entity (read-only; uploads happen in the dashboard).

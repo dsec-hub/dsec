@@ -61,12 +61,15 @@ export const site = {
   instagram: "https://instagram.com/REPLACE", // PLACEHOLDER: Instagram handle
   linkedin: "https://www.linkedin.com/company/REPLACE", // PLACEHOLDER: LinkedIn URL
   calBooking: "https://cal.com/deakin-software-engineering-club/sponsorship", // Cal.com booking link for sponsor meetings
+  // Member portal (app.dsec.club). Overridable for local dev via NEXT_PUBLIC_APP_URL.
+  app: process.env.NEXT_PUBLIC_APP_URL || "https://app.dsec.club",
   campus: "Deakin University · Burwood",
 };
 
 export const nav = [
   { href: "/projects", label: "Projects" },
   { href: "/events", label: "Events" },
+  { href: "/sponsor", label: "Sponsor us" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

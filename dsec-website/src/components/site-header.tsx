@@ -41,9 +41,9 @@ export function SiteHeader() {
               </Link>
             );
           })}
-          <Link href="/sponsor" className="btn btn-ghost ml-3 !py-2.5 !text-sm">
-            Sponsor us
-          </Link>
+          <a href={site.app} className="btn btn-ghost ml-3 !py-2.5 !text-sm">
+            Sign in
+          </a>
           <Link href="/join" className="btn btn-pink !py-2.5 !text-sm">
             Join
           </Link>
@@ -75,13 +75,13 @@ export function SiteHeader() {
                 › {item.label}
               </Link>
             ))}
-            <Link
-              href="/sponsor"
+            <a
+              href={site.app}
               onClick={() => setOpen(false)}
               className="btn btn-ghost mt-2 justify-center"
             >
-              Sponsor us
-            </Link>
+              Sign in
+            </a>
             <Link
               href="/join"
               onClick={() => setOpen(false)}

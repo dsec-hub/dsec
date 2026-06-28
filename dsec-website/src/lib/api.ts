@@ -12,11 +12,15 @@ import "server-only";
 
 import {
   events as placeholderEvents,
+  normalizeLinkAccent,
   projects as placeholderProjects,
+  resolveMascot,
   team as placeholderTeam,
   tiers as placeholderTiers,
   type ClubEvent,
   type Lead,
+  type LinkItem,
+  type LinkTree,
   type MediaItem,
   type Member,
   type Project,
@@ -490,4 +494,54 @@ async function getTeamFromApi(): Promise<Member[] | null> {
 export async function getTeam(): Promise<Member[]> {
   const rows = await getTeamFromApi();
   return rows && rows.length > 0 ? rows : placeholderTeam;
+}
+
+// ---------------------------------------------------------------------------
+// Link tree (/links) — the chromeless public "linktree" page.
+// ---------------------------------------------------------------------------
+
+export type ApiLink = {
+  title: string;
+  subtitle: string | null;
+  url: string;
+  icon: string | null;
+  accent: string | null;
+  display_order: number;
+};
+
+export type ApiLinkProfile = {
+  title: string;
+  tagline: string | null;
+  mascot: string | null;
+};
+
+type ApiLinkTree = {
+  profile: ApiLinkProfile;
+  links: ApiLink[];
+};
+
+/**
+ * The public link tree from the dsec-api feed (`/website/linktree`): the profile
+ * header + the visible links, already ordered by the API. Mapped onto the local
+ * `LinkTree` shape (accents/mascot validated, nulls dropped). Returns `null` on
+ * any failure so the page falls back to the hardcoded `linktree` in content.ts.
+ */
+export async function getLinkTree(): Promise<LinkTree | null> {
+  const data = await fetchJson<ApiLinkTree>("/website/linktree", ["links"]);
+  if (!data) return null;
+  const links: LinkItem[] = (data.links ?? []).map((l) => ({
+    title: l.title,
+    subtitle: l.subtitle ?? undefined,
+    url: l.url,
+    icon: l.icon ?? undefined,
+    accent: normalizeLinkAccent(l.accent),
+  }));
+  return {
+    profile: {
+      title: data.profile?.title ?? "DSEC",
+      tagline: data.profile?.tagline ?? undefined,
+      mascot: resolveMascot(data.profile?.mascot),
+    },
+    links,
+  };
 }

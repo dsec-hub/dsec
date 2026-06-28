@@ -414,3 +414,140 @@ export const accentBg: Record<Accent, string> = {
   mint: "bg-mint",
 };
 
+// ---------------------------------------------------------------------------
+// Link tree (/links) — the chromeless "linktree" page editable by committee.
+// ---------------------------------------------------------------------------
+
+/** The 8 brand accents a link can use (maps to tokens in globals.css). A link
+ *  may also leave this unset, in which case it auto-cycles by visible position. */
+export type LinkAccent =
+  | "blue"
+  | "pink"
+  | "yellow"
+  | "mint"
+  | "sky"
+  | "violet"
+  | "lime"
+  | "coral";
+
+/** Auto-cycle order applied (by visible index, wrapping) when a link's `accent`
+ *  is null. Must match the contract / dsec-api + dsec-hub exactly. */
+export const LINK_ACCENT_CYCLE: LinkAccent[] = [
+  "pink",
+  "blue",
+  "yellow",
+  "mint",
+  "violet",
+  "sky",
+  "coral",
+  "lime",
+];
+
+/** Real PixelDuck sprites offered as profile mascots (files in /public/pixel).
+ *  The list is the validation set: an API mascot outside it falls back. */
+export const LINK_MASCOTS: DuckName[] = [
+  "duck-wave",
+  "duck-mascot",
+  "duck-laptop",
+  "duck-rocket",
+  "duck-trophy",
+  "duck-coffee",
+  "duck-mail",
+  "duck-iso",
+];
+
+/** Default mascot when the profile has none / an unknown sprite name. */
+export const DEFAULT_LINK_MASCOT: DuckName = "duck-wave";
+
+export type LinkItem = {
+  title: string;
+  subtitle?: string;
+  url: string; // absolute http(s) (external) or a relative path like /events
+  icon?: string; // a single emoji
+  accent?: LinkAccent | null; // null ⇒ auto-cycle by visible index
+};
+
+export type LinkProfile = {
+  title: string;
+  tagline?: string;
+  mascot: DuckName;
+};
+
+export type LinkTree = {
+  profile: LinkProfile;
+  links: LinkItem[];
+};
+
+/** Validate an API mascot string against the real sprite set, else fall back. */
+export function resolveMascot(name: string | null | undefined): DuckName {
+  return name && (LINK_MASCOTS as string[]).includes(name)
+    ? (name as DuckName)
+    : DEFAULT_LINK_MASCOT;
+}
+
+/** Validate an API accent string against the 8 accents; unknown ⇒ null (cycle). */
+export function normalizeLinkAccent(accent: string | null | undefined): LinkAccent | null {
+  return accent && (LINK_ACCENT_CYCLE as string[]).includes(accent)
+    ? (accent as LinkAccent)
+    : null;
+}
+
+/** Resolve a link's accent: its own when set, else auto-cycled by visible index. */
+export function linkAccentAt(accent: LinkAccent | null | undefined, visibleIndex: number): LinkAccent {
+  return accent ?? LINK_ACCENT_CYCLE[visibleIndex % LINK_ACCENT_CYCLE.length];
+}
+
+/**
+ * Hardcoded fallback link tree, built from the real `site.*` social values. The
+ * /links page renders this when the dsec-api feed is unset/down, so the page is
+ * never empty. As soon as the API returns a profile + links, those take over.
+ */
+export const linktree: LinkTree = {
+  profile: {
+    title: site.name,
+    tagline: site.longName,
+    mascot: "duck-wave",
+  },
+  links: ([
+    {
+      title: "Join the Discord",
+      subtitle: "Where everything actually happens",
+      url: site.discord,
+      icon: "💬",
+      accent: "violet",
+    },
+    {
+      title: "Become a member",
+      subtitle: "$5 / year · via DUSA",
+      url: site.dusaMembership,
+      icon: "🎟️",
+      accent: "yellow",
+    },
+    {
+      title: "Follow on Instagram",
+      url: site.instagram,
+      icon: "📸",
+      accent: "pink",
+    },
+    {
+      title: "Visit dsec.club",
+      subtitle: "Projects, events & the full story",
+      url: "/",
+      icon: "🦆",
+      accent: "blue",
+    },
+    {
+      title: "Join DSEC",
+      subtitle: "How to get involved",
+      url: "/join",
+      icon: "🚀",
+      accent: "mint",
+    },
+    // Drop any link still pointing at a "REPLACE" PLACEHOLDER URL (e.g. the Discord
+    // and Instagram CTAs, built from site.discord / site.instagram) so we never
+    // render a dead CTA. Set the real Discord / Instagram URLs in site.* above
+    // (or manage the link tree via dsec-hub once the feed is live) and these links
+    // reappear automatically.
+  ] satisfies LinkItem[]).filter((link) => !link.url.includes("REPLACE")),
+};
+

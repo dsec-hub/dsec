@@ -3,6 +3,7 @@ import { Silkscreen, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SiteChrome } from "@/components/site-chrome";
 import { PageTransition } from "@/components/page-transition";
 
 // Silkscreen: a chunky, blocky bitmap face. Reads clearly at large display
@@ -75,11 +76,16 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <SiteHeader />
+        {/* Chrome is hidden on the standalone /links page (see SiteChrome). */}
+        <SiteChrome>
+          <SiteHeader />
+        </SiteChrome>
         <main id="main" className="flex-1">
           <PageTransition>{children}</PageTransition>
         </main>
-        <SiteFooter />
+        <SiteChrome>
+          <SiteFooter />
+        </SiteChrome>
       </body>
     </html>
   );

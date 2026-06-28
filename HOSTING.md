@@ -13,7 +13,8 @@ This is the comprehensive version; the older `DEPLOY.md` only covered the dashbo
 | `dsec.club` | Public website | `dsec-website` | Vercel | → `api.dsec.club` (public feed), Resend, Telegram, Notion |
 | `app.dsec.club` | Member portal | `dsec-app` | Vercel | → `api.dsec.club` (public feed); Neon wired but not yet queried |
 | `hub.dsec.club` | Committee dashboard | `dsec-hub` | Vercel | → Neon (direct), → `api.dsec.club` (AI notes + image upload) |
-| `api.dsec.club` | Backend API + MCP | `dsec-api` | Vercel | → Neon, Anthropic, Supabase, Tally |
+| `games.dsec.club` | Games (Flappy Duck + Codle) | `dsec-games` | Vercel | → `api.dsec.club` (rounds/scores/leaderboard, server-side key); shares the portal session cookie |
+| `api.dsec.club` | Backend API + MCP + Discord bot | `dsec-api` | Vercel | → Neon, Anthropic, Supabase, Tally, Discord (interactions webhook) |
 
 > **Migration (2026-06-16):** the committee dashboard moved from `app.dsec.club`
 > to **`hub.dsec.club`** — the folder was renamed `dsec-app` → `dsec-hub`.
@@ -213,6 +214,71 @@ The site sends from `noreply@dsec.club`, so the domain must be verified:
 
 ---
 
+## Stage 4b — dsec-games (`games.dsec.club`) + the Discord bot
+
+The games platform is two pieces: a new **dsec-games** Vercel project, and the
+**Discord webhook bot** which lives INSIDE dsec-api (no new host — it is just the
+`/discord/interactions` route). The API is the only brain; dsec-games and the bot
+are thin clients.
+
+### 4b.1 dsec-api additions (existing project)
+Add these env vars to the **dsec-api** Vercel project and redeploy:
+
+| Var | Needed | Value |
+|---|---|---|
+| `GAMES_BASE_URL` | ✅ | `https://games.dsec.club` (the bot deep-links here) |
+| `DISCORD_PUBLIC_KEY` | ⚠️ Discord | hex Public Key from the Discord Developer Portal → your app → General Information |
+| `DISCORD_APPLICATION_ID` | ⚠️ Discord | the application id (for registering commands) |
+| `DISCORD_BOT_TOKEN` | ⚠️ Discord | bot token (REST only — used to register commands, no socket) |
+| `CRON_SECRET` | ✅ draw | `openssl rand -base64 32` — Vercel sends it as `Authorization: Bearer` to the monthly draw cron |
+| `GAMES_LINK_SECRET` | optional | blank reuses `AGENT_SECRET` (Discord↔account link codes) |
+| `GAMES_SESSION_SECRET` | optional | blank reuses `AGENT_SECRET` (Flappy play-session signing) |
+| `AUTH_COOKIE_DOMAIN` | n/a here | (this one goes on the Next.js apps, not the API) |
+
+- The **monthly draw cron** is already declared in `dsec-api/vercel.json`
+  (`/games/cron/close-draw`, `0 1 1 * *`). Vercel runs it on the 1st of each month
+  and authenticates with `CRON_SECRET`.
+- **Mint the games-site key** (run from `dsec-api/`, pointed at the live DB):
+  ```
+  .venv/bin/python -m scripts.create_api_key --scopes read,write --label "games-site"   # copy the raw key once
+  ```
+- **Register the Discord commands** (one-off, after setting the Discord env vars):
+  ```
+  .venv/bin/python -m scripts.register_discord_commands
+  ```
+  Then in the Developer Portal set **Interactions Endpoint URL** to
+  `https://api.dsec.club/discord/interactions` (Discord verifies it with a PING —
+  the route answers PONG once `DISCORD_PUBLIC_KEY` is set).
+
+### 4b.2 dsec-games Vercel project
+- Add New → Project → import the repo → **Root Directory: `dsec-games`** → **Next.js**.
+- Env vars:
+
+| Var | Needed | Value |
+|---|---|---|
+| `DSEC_API_URL` | ✅ | `https://api.dsec.club` |
+| `DSEC_API_KEY` | ✅ | the **`read,write`** games-site key from 4b.1 (server-only; never exposed to the browser) |
+| `AUTH_SECRET` | ✅ | **must equal** dsec-app's `AUTH_SECRET` (so this app can decode the shared session cookie) |
+| `AUTH_COOKIE_DOMAIN` | ✅ | `.dsec.club` — **also set the same value on dsec-app** (Stage 3) so the session cookie is shared across subdomains |
+| `AUTH_TRUST_HOST` | ✅ | `true` |
+| `NEXT_PUBLIC_PORTAL_URL` | ✅ | `https://app.dsec.club` (where unauthenticated players sign in) |
+| `NEXT_PUBLIC_WEBSITE_URL` | rec. | `https://dsec.club` (footer links) |
+| `GAMES_DEV_ACCOUNT_ID` / `GAMES_DEV_EMAIL` | dev-only | a guest identity so the games are playable locally without the portal; **ignored in production** |
+
+> **Shared session (do both sides):** set `AUTH_COOKIE_DOMAIN=.dsec.club` on BOTH
+> the `dsec-app` and `dsec-games` projects, and give them the **same `AUTH_SECRET`**.
+> Auth.js sets a host-only cookie by default, so without the domain the games site
+> can't read the portal session. A player signs in once at `app.dsec.club` and is
+> signed in at `games.dsec.club` automatically.
+
+- **Deploy**, then add **Domains → `games.dsec.club`** (Stage 5).
+
+> **Privacy:** the games bind student account ids to gameplay. Confirm this sits
+> inside the DUSA-cleared privacy posture for the portal before go-live (see
+> `dsec-api/app/features/games/README.md`).
+
+---
+
 ## Stage 5 — DNS (Cloudflare) — keep Hostinger email intact
 
 **DNS lives in Cloudflare** (nameservers point to Cloudflare); **Hostinger only hosts the
@@ -239,6 +305,7 @@ Add the web records below. **Leave the existing email records (`MX` + the SPF/DK
 | `CNAME` | `www` | `cd041f83beec4f6c.vercel-dns-017.com` | **DNS only** 🔘 | www → website |
 | `CNAME` | `app` | `53473cb3fb6fdc62.vercel-dns-017.com` | **DNS only** 🔘 | dashboard |
 | `CNAME` | `api` | `606dd6d52ec2b90c.vercel-dns-017.com` *(or your Railway/Render target)* | **DNS only** 🔘 | API |
+| `CNAME` | `games` | *(copy from the `dsec-games` Vercel project → Domains tab, a unique `*.vercel-dns-017.com`)* | **DNS only** 🔘 | games |
 
 **Vercel domain verification** (`TXT` `_vercel`, one per domain — already present):
 ```
@@ -246,6 +313,7 @@ vc-domain-verify=dsec.club,d53e4a66968a0c29a63e,dc
 vc-domain-verify=www.dsec.club,ccf5087190d05d383912,dc
 vc-domain-verify=app.dsec.club,fa42eb479bee4f689867,dc
 vc-domain-verify=api.dsec.club,863922ba49780358db80,dc
+vc-domain-verify=games.dsec.club,<copy from the games project's Vercel Domains tab>,dc
 ```
 
 > ⚠️ **Set the Vercel web records to "DNS only" (grey cloud), not Proxied (orange).**
@@ -332,6 +400,8 @@ public face + a mirror.
 |---|---|---|---|
 | gmail-forwarders | `ingest` | Google Apps Script properties | `/ingest/dusa`, `/ingest/email` |
 | dsec-app | `trigger`, `write` | Vercel `dsec-app` env (`DSEC_API_KEY`) | AI meeting notes (`trigger`), image upload (`write`) |
+| games-site | `read`, `write` | Vercel `dsec-games` env (`DSEC_API_KEY`) | rounds/leaderboard (`read`), submit plays + link codes (`write`) |
+| discord-bot | `read`, `write` | only if the bot runs as a SEPARATE service | the in-`dsec-api` bot needs NO key (it calls game services in-process); mint this only if you split the bot out |
 | (optional) read key | `read` | wherever you query logs/feeds | `/public/logs`, MCP read tools |
 
 Mint more anytime with `python -m scripts.create_api_key --scopes <s> --label <name>`

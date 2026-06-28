@@ -3,6 +3,7 @@
 # dsec-website  → http://localhost:3000   (public site)
 # dsec-app      → http://localhost:3001   (member portal · app.dsec.club)
 # dsec-hub      → http://localhost:3002   (committee dashboard · hub.dsec.club)
+# dsec-games    → http://localhost:3003   (games · games.dsec.club)
 # dsec-api      → http://localhost:8000   (FastAPI backend)
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -61,11 +62,21 @@ echo "[dsec-hub] Starting on http://localhost:3002 ..."
 ) &
 PIDS+=($!)
 
+# --- dsec-games (Next.js · games surface; port 3003 is baked into its dev script) ---
+echo "[dsec-games] Starting on http://localhost:3003 ..."
+(
+  cd "$ROOT/dsec-games"
+  [ ! -d "node_modules" ] && npm install -q
+  npm run dev
+) &
+PIDS+=($!)
+
 echo ""
 echo "All services starting. Logs are interleaved below."
 echo "  dsec-website  → http://localhost:3000   (public site)"
 echo "  dsec-app      → http://localhost:3001   (member portal)"
 echo "  dsec-hub      → http://localhost:3002   (committee dashboard)"
+echo "  dsec-games    → http://localhost:3003   (games)"
 echo "  dsec-api      → http://localhost:8000   (API)"
 echo "Press Ctrl+C to stop all."
 echo ""

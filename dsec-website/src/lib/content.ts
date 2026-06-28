@@ -182,6 +182,13 @@ export type ClubEvent = {
   sponsors?: SponsorBrand[]; // sponsors backing this event (logo wall)
   partners?: SponsorBrand[]; // collaborator clubs co-hosting this event (published only)
   relatedEvents?: RelatedEvent[]; // other published events visibly linked to this one
+  // --- Flagship: marquee events get a unique two-state marketing page ---
+  flagship?: boolean; // when true, renders the FlagshipEvent template
+  flagshipTheme?: "arena" | "blueprint" | "nightrun"; // which template skin
+  flagshipState?: "teaser" | "revealed"; // secret teaser → full reveal
+  flagshipTeaserTitle?: string; // secret-state headline (e.g. "OPERATION DUCKSHOT")
+  flagshipTeaserBody?: string; // secret-state blurb (Markdown) — the idea, teased
+  flagshipRevealAt?: string; // ISO reveal datetime; countdown target (falls back to isoDate)
 };
 
 /** A published event linked to another (a visual-only relation). Just enough to
@@ -310,14 +317,44 @@ export const tiers: Tier[] = [
 ];
 
 export type Member = {
+  slug?: string; // profile page key (/team/[slug]); derived from name when absent
   name: string;
   role: string;
+  type?: string; // "Exec" | "Committee Lead" | "Committee Member" | …  (splits the grid)
+  committee?: string; // e.g. "Web Development" — the team they sit on
   accent: Accent;
   description?: string;
-  image?: string; // headshot in /public/team
+  image?: string; // headshot in /public/team (or live WebP from the API)
   instagram?: string; // handle, with or without leading @
   linkedin?: string; // path after linkedin.com, e.g. /in/name
+  github?: string; // handle or full URL
+  website?: string; // full URL
 };
+
+/** One event/project a member leads, shown on their profile page. */
+export type MemberEvent = { slug: string; title: string; date?: string; status: "upcoming" | "past" };
+export type MemberProject = { slug: string; title: string; summary?: string };
+
+/** A member's full public profile (the /team/[slug] page): the grid card plus
+ *  their Discord and the events/projects they lead. */
+export type MemberDetail = Member & {
+  discord?: string;
+  ledEvents: MemberEvent[];
+  ledProjects: MemberProject[];
+};
+
+/** A member's profile-page slug, derived from their name. Mirrors the dsec-api
+ *  `/website/team` slug so a placeholder-roster link still resolves in dev. */
+export function memberSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "member";
+}
+
+/** True for executive-committee members (President, VP, …) — used to split the
+ *  About-page roster into the "exec" and "wider committee" sections. Anyone not
+ *  typed as Exec falls into the committee bucket, so nobody published is dropped. */
+export function isExec(m: Pick<Member, "type">): boolean {
+  return /exec/i.test(m.type ?? "");
+}
 
 /** The DSEC executive committee. Roles stay constant year to year; the people
  *  are elected at the AGM under DUSA club rules. */
@@ -325,6 +362,8 @@ export const team: Member[] = [
   {
     name: "Samridh Limbu",
     role: "President",
+    type: "Exec",
+    committee: "Executive",
     accent: "yellow",
     description:
       "Sets club vision, manages external partnerships, and ensures portfolio-driven outcomes for members.",
@@ -333,16 +372,10 @@ export const team: Member[] = [
     linkedin: "/in/samridh-limbu",
   },
   {
-    name: "Tarun Rutvik Gandeti",
-    role: "Vice-President",
-    accent: "blue",
-    description:
-      "Executes internal operations, coordinates committee heads, and keeps projects on track.",
-    image: "/team/tarun.jpg",
-  },
-  {
     name: "Aarav Verma",
     role: "Brand Executive",
+    type: "Exec",
+    committee: "Executive",
     accent: "pink",
     description:
       "Builds visual identity, creates marketing assets, and manages social media presence.",
@@ -351,6 +384,8 @@ export const team: Member[] = [
   {
     name: "Open Position",
     role: "Head of Marketing",
+    type: "Committee Lead",
+    committee: "Marketing",
     accent: "mint",
     description:
       "This role is currently open. Plans content strategy, manages outreach campaigns, and grows club visibility.",
@@ -358,6 +393,8 @@ export const team: Member[] = [
   {
     name: "Ranveer Bhasin",
     role: "Head of External Affairs",
+    type: "Committee Lead",
+    committee: "External Affairs",
     accent: "yellow",
     description:
       "Secures sponsorships, coordinates industry panels, and builds corporate partnerships.",
@@ -366,44 +403,23 @@ export const team: Member[] = [
     linkedin: "/in/ranveer-bhasin",
   },
   {
-    name: "Shalok Sharma",
-    role: "Head of Development",
-    accent: "blue",
-    description:
-      "Oversees all technical teams, sets project standards, and coordinates cross-team initiatives.",
-    image: "/team/shalok.jpg",
-  },
-  {
     name: "Ryan Lee",
     role: "Web Development Lead",
+    type: "Committee Lead",
+    committee: "Web Development",
     accent: "pink",
     description:
       "Leads web projects, runs workshops on React/Next.js, and reviews frontend code.",
     image: "/team/ryan.jpg",
   },
   {
-    name: "Yordan Simeonov",
-    role: "App Development Lead",
+    name: "Kirit",
+    role: "Game Development Lead",
+    type: "Committee Lead",
+    committee: "Game Development",
     accent: "mint",
     description:
-      "Leads mobile and desktop app development projects and workshops.",
-    image: "/team/yordan.jpg",
-  },
-  {
-    name: "Samarpan Gupta Kanu",
-    role: "AI Lead",
-    accent: "yellow",
-    description:
-      "Builds automation tools, Discord bots, and runs scripting workshops for workflow optimization.",
-    image: "/team/samarpan.jpg",
-  },
-  {
-    name: "Nikhil Gupta",
-    role: "Robotics Lead",
-    accent: "blue",
-    description:
-      "Runs hardware projects, embedded systems workshops, and robotics showcases.",
-    image: "/team/nikhil.jpg",
+      "Leads the club's game development projects, runs game-dev workshops, and showcases student-built games.",
   },
 ];
 

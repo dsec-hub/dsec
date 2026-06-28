@@ -6,19 +6,116 @@ import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
 import { getPartners, getTeam } from "@/lib/api";
 import { organizationSchema } from "@/lib/schema";
-import { accentBg, site } from "@/lib/content";
+import { accentBg, isExec, site, type Member } from "@/lib/content";
 
-/** Build a LinkedIn URL from a full URL, a "linkedin.com/…" string, or a bare
- *  path/handle (e.g. "/in/name"). Handles both the static roster and live data. */
-function linkedinHref(v: string): string {
-  if (/^https?:\/\//i.test(v)) return v;
-  const s = v.replace(/^\/+/, "");
-  return /^(www\.)?linkedin\.com/i.test(s) ? `https://${s}` : `https://linkedin.com/${s}`;
+/** One roster tile — a clickable card that links through to the member's
+ *  profile page. Social links live on that page, so the whole card is one link
+ *  (no nested anchors). */
+function MemberCard({ m }: { m: Member }) {
+  return (
+    <Link
+      href={`/team/${m.slug}`}
+      className="pixel-card pixel-hover group flex flex-col overflow-hidden"
+    >
+      <div
+        className={`relative aspect-square overflow-hidden border-b-[3px] border-paper ${accentBg[m.accent]}`}
+      >
+        {m.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={m.image}
+            alt={m.name}
+            className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-out-strong)] group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="grid h-full place-items-center">
+            <PixelDuck name="duck-mascot" alt="" size={88} />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="font-display text-lg font-bold leading-tight">{m.name}</div>
+        <div className="font-mono text-xs text-paper/60">{m.role}</div>
+        {m.description && (
+          <p className="mt-2 line-clamp-3 text-sm leading-snug text-paper/70">{m.description}</p>
+        )}
+        <span className="mt-3 font-mono text-xs font-bold text-pink opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          View profile →
+        </span>
+      </div>
+    </Link>
+  );
 }
 
-/** Build an Instagram URL from a handle (with/without leading @) or a full URL. */
-function instagramHref(v: string): string {
-  return /^https?:\/\//i.test(v) ? v : `https://instagram.com/${v.replace(/^@+/, "")}`;
+/** A titled grid of member cards — one per About-page section (exec / committee). */
+function TeamGrid({ members }: { members: Member[] }) {
+  return (
+    <div className="stagger mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {members.map((m) => (
+        <MemberCard key={m.slug ?? m.name} m={m} />
+      ))}
+    </div>
+  );
+}
+
+/** Preferred display order for the team blocks (derived from role). Categories
+ *  not listed here follow alphabetically; members with no role fall into a final
+ *  catch-all. */
+const CATEGORY_ORDER = [
+  "Web Development",
+  "App Development",
+  "Game Development",
+  "AI",
+  "Robotics",
+  "Cyber Security",
+  "Development",
+  "Developer",
+  "Design",
+  "Marketing",
+  "External Affairs",
+  "Operations",
+  "Events",
+];
+
+/** Bucket for members whose role doesn't resolve to a category. */
+const NO_CATEGORY = "Committee";
+
+/** Accent bar colours cycled across the team section headings. */
+const GROUP_ACCENTS = ["yellow", "pink", "mint", "blue"] as const;
+
+/** Reduce a free-text role title to its discipline so members group into tidy
+ *  sections: drop a leading "Head of", a trailing rank word ("Lead", "Officer",
+ *  …), and normalise separators — so "Web-Development Lead" and "Web Development
+ *  Lead" both become "Web Development". Falls back to the committee, then to a
+ *  generic bucket. */
+function roleCategory(m: Member): string {
+  const base = (m.role ?? "").replace(/[-_/]+/g, " ").replace(/\s+/g, " ").trim();
+  const stripped = base
+    .replace(/^head of\s+/i, "")
+    .replace(/\s+(lead|leads|head|officer|executive|exec|manager|coordinator|director)$/i, "")
+    .trim();
+  return stripped || base || m.committee?.trim() || NO_CATEGORY;
+}
+
+/** Group the (non-exec) roster by role-derived category, ordered by
+ *  CATEGORY_ORDER with unknown categories alphabetical and the catch-all last,
+ *  so each discipline renders as its own labelled block on the About page. */
+function groupByRole(members: Member[]): { name: string; members: Member[] }[] {
+  const groups = new Map<string, Member[]>();
+  for (const m of members) {
+    const key = roleCategory(m);
+    const arr = groups.get(key);
+    if (arr) arr.push(m);
+    else groups.set(key, [m]);
+  }
+  const rank = (name: string) => {
+    if (name === NO_CATEGORY) return CATEGORY_ORDER.length + 1;
+    const i = CATEGORY_ORDER.indexOf(name);
+    return i === -1 ? CATEGORY_ORDER.length : i;
+  };
+  return [...groups.entries()]
+    .map(([name, members]) => ({ name, members }))
+    .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
 }
 
 export const metadata: Metadata = {
@@ -57,6 +154,15 @@ const values = [
 
 export default async function AboutPage() {
   const [team, partners] = await Promise.all([getTeam(), getPartners()]);
+  // Three tiers keyed off each member's `type`:
+  //   • executives        (type "Exec")    — president, VP, secretary, design lead
+  //   • committee leads    (type "… Lead")  — AI / web / game / marketing leads …
+  //   • committee members  (everyone else)  — grouped into discipline sub-sections
+  // so nobody published is ever dropped.
+  const isLead = (m: Member) => !isExec(m) && /lead/i.test(m.type ?? "");
+  const execs = team.filter(isExec);
+  const leads = team.filter(isLead);
+  const memberGroups = groupByRole(team.filter((m) => !isExec(m) && !isLead(m)));
   return (
     <div>
       <JsonLd data={organizationSchema()} />
@@ -95,90 +201,74 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* Committee */}
+      {/* Executive committee */}
+      {execs.length > 0 && (
+        <section className="border-t-[3px] border-paper bg-panel-2">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <SectionHeading eyebrow="Who runs DSEC" title="Meet the exec.">
+              DSEC is led by a volunteer executive committee of Deakin students who
+              handle everything from event planning and sponsorship to Discord
+              moderation and code-review nights. Execs are elected at our AGM each
+              year, following DUSA club rules. Tap anyone to see their profile.
+            </SectionHeading>
+            <TeamGrid members={execs} />
+          </div>
+        </section>
+      )}
+
+      {/* Committee leads — flat grid, no committee/discipline split */}
+      {leads.length > 0 && (
+        <section className="border-t-[3px] border-paper">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <SectionHeading eyebrow="The leads" title="Committee leads.">
+              The leads who run each of our project teams. They set direction, run
+              workshops, and own what their team ships every term. Tap anyone to
+              see their profile.
+            </SectionHeading>
+            <TeamGrid members={leads} />
+          </div>
+        </section>
+      )}
+
+      {/* Committee members — one labelled block per discipline/team */}
+      {memberGroups.length > 0 && (
+        <section className="border-t-[3px] border-paper bg-panel-2">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+            <SectionHeading eyebrow="The wider team" title="Committee members.">
+              The members building alongside each lead, grouped by the team
+              they&apos;re on.
+            </SectionHeading>
+            <div className="mt-12 space-y-14">
+              {memberGroups.map((g, i) => (
+                <div key={g.name}>
+                  <div
+                    className={`mb-3 h-2 w-12 ${accentBg[GROUP_ACCENTS[i % GROUP_ACCENTS.length]]}`}
+                  />
+                  <h3 className="font-display text-2xl font-bold sm:text-3xl">{g.name}</h3>
+                  <TeamGrid members={g.members} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Join the committee CTA */}
       <section className="border-t-[3px] border-paper bg-panel-2">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-          <SectionHeading eyebrow="Who runs DSEC" title="Meet the exec team.">
-            DSEC is led by a volunteer executive committee of Deakin students who
-            handle everything from event planning and sponsorship to Discord
-            moderation and code-review nights. Execs are elected at our AGM each
-            year, following DUSA club rules.
-          </SectionHeading>
-          <div className="stagger mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {team.map((m) => (
-              <div
-                key={m.name}
-                className="pixel-card pixel-hover group flex flex-col overflow-hidden"
-              >
-                <div
-                  className={`relative aspect-square overflow-hidden border-b-[3px] border-paper ${accentBg[m.accent]}`}
-                >
-                  {m.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.image}
-                      alt={m.name}
-                      className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-out-strong)] group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <div className="grid h-full place-items-center">
-                      <PixelDuck name="duck-mascot" alt="" size={88} />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="font-display text-lg font-bold leading-tight">
-                    {m.name}
-                  </div>
-                  <div className="font-mono text-xs text-paper/60">{m.role}</div>
-                  {m.description && (
-                    <p className="mt-2 text-sm leading-snug text-paper/70">
-                      {m.description}
-                    </p>
-                  )}
-                  {(m.instagram || m.linkedin) && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {m.linkedin && (
-                        <a
-                          href={linkedinHref(m.linkedin)}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="pixel-tag !bg-panel !text-blue hover:!text-paper"
-                        >
-                          LinkedIn
-                        </a>
-                      )}
-                      {m.instagram && (
-                        <a
-                          href={instagramHref(m.instagram)}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="pixel-tag !bg-panel !text-pink hover:!text-paper"
-                        >
-                          Instagram
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 text-center">
-            <p className="mx-auto max-w-2xl text-paper/75">
-              If you are a Deakin student who cares about building communities,
-              joining the committee is one of the best ways to grow your leadership
-              and project skills while you study.
-            </p>
-            <a
-              href="https://dsec.notion.site/dsec-committee-hiring-2026?source=copy_link"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="btn btn-pink mt-5"
-            >
-              See open volunteer roles
-            </a>
-          </div>
+        <div className="mx-auto max-w-6xl px-4 py-12 text-center sm:px-6">
+          <p className="mx-auto max-w-2xl text-paper/75">
+            If you are a Deakin student who cares about building communities,
+            joining the committee is one of the best ways to grow your leadership
+            and project skills while you study.
+          </p>
+          <a
+            href="https://dsec.notion.site/dsec-committee-hiring-2026?source=copy_link"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="btn btn-pink mt-5"
+          >
+            See open volunteer roles
+          </a>
         </div>
       </section>
 
@@ -193,7 +283,7 @@ export default async function AboutPage() {
             projects.
           </SectionHeading>
           <div className="mt-8">
-            <SponsorLogos sponsors={partners} center />
+            <SponsorLogos sponsors={partners} marquee />
           </div>
         </section>
       )}

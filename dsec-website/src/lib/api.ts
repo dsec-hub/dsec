@@ -12,6 +12,7 @@ import "server-only";
 
 import {
   events as placeholderEvents,
+  memberSlug,
   normalizeLinkAccent,
   projects as placeholderProjects,
   resolveMascot,
@@ -23,6 +24,7 @@ import {
   type LinkTree,
   type MediaItem,
   type Member,
+  type MemberDetail,
   type Project,
   type RelatedEvent,
   type Speaker,
@@ -88,6 +90,12 @@ type ApiEvent = {
   sponsors?: ApiEventSponsor[] | null;
   partners?: ApiEventPartner[] | null;
   related_events?: ApiRelatedEvent[] | null;
+  flagship?: boolean | null;
+  flagship_theme?: string | null;
+  flagship_state?: string | null;
+  flagship_teaser_title?: string | null;
+  flagship_teaser_body?: string | null;
+  flagship_reveal_at?: string | null;
 };
 
 type ApiRelatedEvent = {
@@ -129,6 +137,7 @@ type ApiSponsor = {
 };
 
 type ApiPerson = {
+  slug: string;
   name: string;
   role: string | null;
   type: string | null;
@@ -140,6 +149,12 @@ type ApiPerson = {
   linkedin: string | null;
   github: string | null;
   website: string | null;
+};
+
+type ApiPersonDetail = ApiPerson & {
+  discord: string | null;
+  led_events: { slug: string; title: string; date: string | null; upcoming: boolean }[] | null;
+  led_projects: { slug: string | null; title: string; summary: string | null }[] | null;
 };
 
 /**
@@ -319,7 +334,18 @@ function mapEvent(e: ApiEvent, i: number): ClubEvent {
     sponsors: (e.sponsors ?? []).map(mapEventSponsor),
     partners: (e.partners ?? []).map(mapEventPartner),
     relatedEvents: (e.related_events ?? []).map(mapRelatedEvent),
+    flagship: e.flagship ?? false,
+    flagshipTheme: mapFlagshipTheme(e.flagship_theme),
+    flagshipState: e.flagship_state === "revealed" ? "revealed" : e.flagship_state === "teaser" ? "teaser" : undefined,
+    flagshipTeaserTitle: e.flagship_teaser_title ?? undefined,
+    flagshipTeaserBody: e.flagship_teaser_body ?? undefined,
+    flagshipRevealAt: e.flagship_reveal_at ?? undefined,
   };
+}
+
+/** Normalise the API theme string onto the 3 supported skins (defaults to arena). */
+function mapFlagshipTheme(t: string | null | undefined): ClubEvent["flagshipTheme"] {
+  return t === "blueprint" || t === "nightrun" ? t : "arena";
 }
 
 async function getProjectsFromApi(): Promise<Project[] | null> {
@@ -386,6 +412,29 @@ export async function getEvent(slug: string): Promise<ClubEvent | null> {
   if (live) return live;
   if (!SHOW_DEMO_PLACEHOLDERS) return null;
   return placeholderEvents.find((e) => e.slug === slug) ?? null;
+}
+
+/**
+ * One event by a signed committee preview token (the `/events/preview/[token]`
+ * route). Unlike `getEvent`, this hits the token-gated feed that also serves
+ * *drafts*, is NEVER cached (`no-store` — a preview must reflect the latest
+ * unpublished edit), and has no placeholder fallback: an invalid/expired token
+ * or unreachable API returns `null` so the page 404s. Returns `null` when
+ * `DSEC_API_URL` is unset (no live feed → nothing to preview).
+ */
+export async function getEventPreview(token: string): Promise<ClubEvent | null> {
+  const base = apiBase();
+  if (!base) return null;
+  try {
+    const res = await fetch(
+      `${base}/website/events/preview/${encodeURIComponent(token)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return mapEvent((await res.json()) as ApiEvent, 0);
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -469,13 +518,18 @@ export async function getPartners(): Promise<SponsorBrand[]> {
  *  the grid keeps its blue/pink/yellow/mint rhythm. */
 function mapPerson(p: ApiPerson, i: number): Member {
   return {
+    slug: p.slug,
     name: p.name,
     role: p.role ?? p.type ?? "",
+    type: p.type ?? undefined,
+    committee: p.committee ?? undefined,
     accent: ACCENTS[i % ACCENTS.length],
     description: p.bio ?? undefined,
     image: p.photo ?? undefined,
     instagram: p.instagram ?? undefined,
     linkedin: p.linkedin ?? undefined,
+    github: p.github ?? undefined,
+    website: p.website ?? undefined,
   };
 }
 
@@ -486,14 +540,79 @@ async function getTeamFromApi(): Promise<Member[] | null> {
 }
 
 /**
- * The committee/team for the About page. Prefers the people the exec has
- * published (show_on_website) from the live feed; falls back to the static
- * roster in `content.ts` when none are published or the feed is unreachable —
- * so the page always renders a team.
+ * The committee/team for the About page. `show_on_website` is still a beta
+ * toggle, so the static roster in `content.ts` ALWAYS renders — the live feed
+ * augments it rather than replacing it:
+ *   - a published (show_on_website) member overrides their matching placeholder
+ *     card, matched by slug, with their live photo/bio/socials;
+ *   - anyone published who isn't in the static roster is appended.
+ * So opting in never removes the curated roster. Every member is guaranteed a
+ * `slug` (the live feed supplies one; placeholders derive theirs) for the
+ * profile-page link. When the feed is empty/unreachable this is just the roster.
  */
 export async function getTeam(): Promise<Member[]> {
-  const rows = await getTeamFromApi();
-  return rows && rows.length > 0 ? rows : placeholderTeam;
+  const live = await getTeamFromApi();
+  const liveBySlug = new Map(
+    (live ?? []).map((m) => [m.slug ?? memberSlug(m.name), m] as const),
+  );
+
+  // Walk the curated roster in order; a matching live person overrides the card
+  // but keeps the placeholder's grid accent (the feed doesn't store one) and its
+  // guaranteed slug. Consumed entries are removed so only genuinely-new people
+  // remain to append.
+  const merged: Member[] = placeholderTeam.map((m) => {
+    const slug = m.slug ?? memberSlug(m.name);
+    const hit = liveBySlug.get(slug);
+    liveBySlug.delete(slug);
+    return hit ? { ...hit, slug, accent: m.accent } : { ...m, slug };
+  });
+
+  // Published people who aren't in the static roster, in feed order, accented by
+  // final grid position so the blue/pink/yellow/mint rhythm continues.
+  for (const m of liveBySlug.values()) {
+    merged.push({
+      ...m,
+      slug: m.slug ?? memberSlug(m.name),
+      accent: ACCENTS[merged.length % ACCENTS.length],
+    });
+  }
+
+  return merged;
+}
+
+/** Map an API person-detail onto the local `MemberDetail` profile-page shape. */
+function mapPersonDetail(p: ApiPersonDetail): MemberDetail {
+  return {
+    ...mapPerson(p, 0),
+    discord: p.discord ?? undefined,
+    ledEvents: (p.led_events ?? []).map((e) => ({
+      slug: e.slug,
+      title: e.title,
+      date: e.date ?? undefined,
+      status: e.upcoming ? "upcoming" : "past",
+    })),
+    ledProjects: (p.led_projects ?? [])
+      .filter((pr): pr is { slug: string; title: string; summary: string | null } => !!pr.slug)
+      .map((pr) => ({ slug: pr.slug, title: pr.title, summary: pr.summary ?? undefined })),
+  };
+}
+
+/**
+ * One team member's full public profile (the /team/[slug] page). Prefers the
+ * live feed; in dev, falls back to the static roster (no events/projects) so the
+ * page renders before the API exists. Returns null when the slug is unknown.
+ */
+export async function getTeamMember(slug: string): Promise<MemberDetail | null> {
+  const row = await fetchJson<ApiPersonDetail>(
+    `/website/team/${encodeURIComponent(slug)}`,
+    ["team"],
+  );
+  if (row) return mapPersonDetail(row);
+  // Team placeholders are the club's real roster — a genuine fallback in every
+  // environment (like getTeam), so a known slug still resolves when the feed is
+  // down. Unknown slugs return null → the page 404s.
+  const m = placeholderTeam.find((x) => memberSlug(x.name) === slug);
+  return m ? { ...m, slug, ledEvents: [], ledProjects: [] } : null;
 }
 
 // ---------------------------------------------------------------------------

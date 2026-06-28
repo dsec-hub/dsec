@@ -89,46 +89,79 @@ export function LeadBadge({ lead, label }: { lead: Lead; label: string }) {
   );
 }
 
-/* ---------- Sponsor logos: a wall/strip of brand logos on white cards ----------
-   White card so any (transparent) logo reads on the dark theme; falls back to
-   the brand name when no logo is uploaded. `center` is used on the sponsor page
-   wall; the event page uses the default left-aligned strip. */
+/* ---------- Sponsor logos: full-colour brand marks, no card ----------
+   The marks sit straight on the dark theme (no paper card, no border), so an
+   uploaded logo should be a transparent PNG that reads on near-black — use the
+   light/white variant for any dark wordmark. Falls back to the brand name when
+   no logo is uploaded. Rendered two ways by `SponsorLogos`: a scrolling marquee
+   on the sponsor / partner walls, and a static strip on event pages. */
 function SponsorLogo({ sponsor }: { sponsor: SponsorBrand }) {
-  const box = (
-    <div className="grid h-20 min-w-[150px] place-items-center border-[3px] border-paper bg-paper px-5 shadow-[4px_4px_0_0_var(--color-paper)]">
-      {sponsor.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={sponsor.logo} alt={sponsor.name} className="max-h-12 w-auto object-contain" />
-      ) : (
-        <span className="font-display text-lg font-bold text-ink">{sponsor.name}</span>
-      )}
-    </div>
+  const content = sponsor.logo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={sponsor.logo}
+      alt={sponsor.name}
+      className="h-9 w-auto max-w-[180px] object-contain sm:h-11"
+    />
+  ) : (
+    <span className="font-display text-lg font-bold text-paper/80">{sponsor.name}</span>
   );
+  const cls =
+    "grid h-12 shrink-0 place-items-center px-2 opacity-85 transition-opacity duration-200 hover:opacity-100";
   return sponsor.website ? (
     <a
       href={sponsor.website}
       target="_blank"
       rel="noreferrer noopener"
-      className="pixel-hover block"
+      className={cls}
       title={sponsor.name}
     >
-      {box}
+      {content}
     </a>
   ) : (
-    box
+    <span className={cls}>{content}</span>
   );
 }
 
 export function SponsorLogos({
   sponsors,
   center = false,
+  marquee = false,
 }: {
   sponsors: SponsorBrand[];
   center?: boolean;
+  marquee?: boolean;
 }) {
   if (!sponsors.length) return null;
+
+  /* Scrolling marquee for the sponsor / partner walls. The track holds three
+     copies of the strip and slides by exactly one-third (see @keyframes marquee),
+     so the loop is seamless; it pauses on hover and honours reduced-motion. Only
+     worth it once there are enough logos to fill the row — otherwise we drop
+     through to the static strip so two logos don't slide past awkwardly. */
+  if (marquee && sponsors.length >= 3) {
+    const mask =
+      "linear-gradient(to right, transparent, #000 7%, #000 93%, transparent)";
+    return (
+      <div
+        className="group relative overflow-hidden py-2"
+        style={{ maskImage: mask, WebkitMaskImage: mask }}
+      >
+        <div className="flex w-max items-center gap-12 animate-[marquee_34s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none sm:gap-20">
+          {[0, 1, 2].map((copy) =>
+            sponsors.map((s, i) => (
+              <SponsorLogo key={`${copy}-${s.name}-${i}`} sponsor={s} />
+            )),
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`stagger flex flex-wrap items-center gap-5 ${center ? "justify-center" : ""}`}>
+    <div
+      className={`stagger flex flex-wrap items-center gap-8 ${center ? "justify-center" : ""}`}
+    >
       {sponsors.map((s, i) => (
         <SponsorLogo key={`${s.name}-${i}`} sponsor={s} />
       ))}

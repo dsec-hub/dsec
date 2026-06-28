@@ -162,7 +162,7 @@ export default async function SponsorPage() {
             The companies already supporting DSEC and the students who build with us.
           </SectionHeading>
           <div className="mt-8">
-            <SponsorLogos sponsors={sponsors} center />
+            <SponsorLogos sponsors={sponsors} marquee />
           </div>
         </section>
       )}

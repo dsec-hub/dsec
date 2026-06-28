@@ -1,0 +1,131 @@
+/* ============================================================================
+   Flagship event template — themeable styles (arena | blueprint | nightrun).
+   Built on the global DSEC tokens (--color-*, --ease-*, --shadow-pix). Scoped
+   so it only affects the flagship page. Theme is applied via `data-theme` on
+   .root; descendants restyle per theme. Hard-edged by default; the only soft
+   glows are the intentional neon accents in the nightrun theme.
+   ============================================================================ */
+
+.root { position: relative; overflow: hidden; }
+
+/* ---- HERO ---------------------------------------------------------------- */
+.hero { position: relative; padding: clamp(2.5rem, 7vw, 5.5rem) 0 clamp(1.5rem, 4vw, 3rem); }
+.heroGrid { display: grid; gap: clamp(1.8rem, 4vw, 3.2rem); grid-template-columns: 1fr; align-items: center; }
+@media (min-width: 900px) { .heroGrid { grid-template-columns: 1.05fr .95fr; } }
+
+.headline { font-family: var(--font-display); font-size: clamp(2.1rem, 7.5vw, 4.6rem); line-height: .98; letter-spacing: -0.01em; margin: .55rem 0 0; text-wrap: balance; }
+.headline .codename { display: block; }
+.blurb { max-width: 56ch; margin-top: 1.25rem; color: rgba(245, 239, 226, .82); font-size: 1.05rem; }
+.blurb :global(p) { margin: .5rem 0; }
+
+.heroArt { position: relative; border: 3px solid var(--color-paper); box-shadow: var(--shadow-pix-lg); background: var(--color-void); overflow: hidden; }
+.heroArt img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.heroStamp { position: absolute; top: 12px; right: 12px; font-family: var(--font-display); font-size: .68rem; padding: .3rem .55rem; border: 3px solid currentColor; transform: rotate(7deg); letter-spacing: .04em; }
+
+.metaRow { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.4rem; }
+.ctaRow { display: flex; flex-wrap: wrap; gap: .9rem; margin-top: 1.7rem; align-items: center; }
+
+/* ---- COUNTDOWN ----------------------------------------------------------- */
+.cdBlock { margin-top: 2rem; }
+.cdTitle { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-sky); margin-bottom: .7rem; }
+.cdGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(.45rem, 1.5vw, .9rem); max-width: 460px; }
+.cdCell { background: var(--color-void); border: 3px solid var(--color-paper); padding: .85rem .35rem; text-align: center; }
+.cdNum { font-family: var(--font-display); font-size: clamp(1.5rem, 5vw, 2.5rem); line-height: 1; }
+.cdLab { font-family: var(--font-mono); font-size: .58rem; text-transform: uppercase; letter-spacing: .12em; color: rgba(245, 239, 226, .6); margin-top: .5rem; }
+.cdTba { font-family: var(--font-display); font-size: 1.1rem; color: var(--color-yellow); }
+
+/* ---- BRIEF (the "what's still secret" panel) ----------------------------- */
+.brief { padding: clamp(2rem, 5vw, 3.5rem) 0; }
+.briefGrid { display: grid; gap: 1.1rem; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .briefGrid { grid-template-columns: 1.35fr 1fr; } }
+.fileCard { background: var(--color-panel); border: 3px solid var(--color-paper); box-shadow: var(--shadow-pix); padding: 1.5rem; }
+.fileLine { display: flex; gap: .7rem; align-items: baseline; padding: .5rem 0; border-bottom: 1px dashed rgba(245, 239, 226, .2); }
+.fileLine:last-child { border-bottom: 0; }
+.fileKey { font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(245, 239, 226, .55); min-width: 92px; }
+.fileVal { font-family: var(--font-mono); font-size: .9rem; }
+
+/* withheld marker — restyled per theme */
+.withheld { display: inline-block; font-family: var(--font-mono); font-size: .78rem; padding: 0 .5em; letter-spacing: .05em; }
+
+/* ---- FUNNELS ------------------------------------------------------------- */
+.funnelSection { padding: clamp(2rem, 5vw, 3.5rem) 0; background: var(--color-panel-2); border-top: 3px solid var(--color-paper); border-bottom: 3px solid var(--color-paper); }
+.funnelGrid { display: grid; gap: 1.3rem; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .funnelGrid { grid-template-columns: 1fr 1fr; } }
+.funnel { background: var(--color-panel); border: 3px solid var(--color-paper); box-shadow: var(--shadow-pix); padding: 1.7rem; }
+.funnelHead { font-family: var(--font-display); font-size: 1.1rem; margin: .25rem 0 .4rem; }
+.funnelForm { display: flex; flex-direction: column; gap: .8rem; margin-top: 1rem; }
+.fieldRow { display: flex; gap: .65rem; flex-wrap: wrap; }
+.fieldRow > :global(input) { flex: 1 1 60%; min-width: 170px; }
+.done { display: flex; gap: .6rem; align-items: center; font-family: var(--font-mono); color: var(--color-mint); font-size: .9rem; }
+.err { font-family: var(--font-mono); font-size: .78rem; color: var(--color-coral); margin-top: .4rem; }
+.perk { font-family: var(--font-mono); font-size: .76rem; color: rgba(245, 239, 226, .7); display: flex; gap: .5rem; padding: .28rem 0; }
+.perk b { color: var(--color-mint); }
+.shareRow { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; margin-top: 1.8rem; }
+
+/* ---- input (mirror global .pixel-input, scoped) -------------------------- */
+.input { width: 100%; font-family: var(--font-mono); font-size: .9rem; background: var(--color-void); color: var(--color-paper); border: 3px solid var(--color-paper); padding: .8rem .9rem; caret-color: var(--color-sky); box-shadow: inset 2px 2px 0 0 rgba(0,0,0,.5); }
+.input::placeholder { color: rgba(245, 239, 226, .4); }
+.input:focus-visible { outline: 3px solid var(--color-sky); outline-offset: 3px; }
+
+/* ===========================================================================
+   THEME: ARENA — loud arcade championship
+   =========================================================================== */
+.root[data-theme="arena"] { background:
+  radial-gradient(120% 60% at 50% -10%, rgba(255, 207, 51, .10), transparent 60%); }
+.root[data-theme="arena"] .heroStamp { color: var(--color-yellow); }
+.root[data-theme="arena"] .cdNum { color: var(--color-yellow); }
+.root[data-theme="arena"] .withheld { color: var(--color-ink); background: var(--color-yellow); font-weight: 700; box-shadow: 2px 2px 0 0 var(--color-pink); }
+
+.marquee { overflow: hidden; border-top: 3px solid var(--color-paper); border-bottom: 3px solid var(--color-paper); background: var(--color-pink); }
+.marqueeTrack { display: inline-flex; white-space: nowrap; will-change: transform; animation: fl-marquee 24s linear infinite; }
+.marqueeTrack span { font-family: var(--font-display); font-size: .92rem; color: #fff; padding: .7rem 1.2rem; }
+@keyframes fl-marquee { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+
+/* ===========================================================================
+   THEME: BLUEPRINT — engineering schematic
+   =========================================================================== */
+.root[data-theme="blueprint"] .hero {
+  background-image:
+    linear-gradient(rgba(0, 188, 212, .07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 188, 212, .07) 1px, transparent 1px),
+    linear-gradient(rgba(0, 188, 212, .16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 188, 212, .16) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px, 110px 110px, 110px 110px;
+}
+.root[data-theme="blueprint"] .headline { color: var(--color-paper); text-shadow: 3px 3px 0 var(--color-sky), 6px 6px 0 var(--color-ink); }
+.root[data-theme="blueprint"] .heroStamp { color: var(--color-sky); }
+.root[data-theme="blueprint"] .cdNum { color: var(--color-sky); }
+.root[data-theme="blueprint"] .cdTitle::before { content: "⌖ "; }
+.root[data-theme="blueprint"] .withheld { color: var(--color-sky); border: 1px dashed var(--color-sky); padding: .05em .5em; letter-spacing: .12em; }
+.crosshair { position: absolute; width: 16px; height: 16px; pointer-events: none; opacity: .6; }
+.crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--color-sky); }
+.crosshair::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-.5px); }
+.crosshair::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-.5px); }
+.coordLabel { font-family: var(--font-mono); font-size: .64rem; color: var(--color-sky); letter-spacing: .1em; }
+
+/* ===========================================================================
+   THEME: NIGHTRUN — synthwave after-dark (neon glow allowed here)
+   =========================================================================== */
+.root[data-theme="nightrun"] { background:
+  radial-gradient(100% 60% at 50% 120%, rgba(233, 30, 99, .14), transparent 55%),
+  radial-gradient(80% 50% at 50% 130%, rgba(0, 188, 212, .12), transparent 55%); }
+.root[data-theme="nightrun"] .headline { color: var(--color-paper); text-shadow: 0 0 12px rgba(0, 188, 212, .65), 0 0 26px rgba(233, 30, 99, .45); }
+.root[data-theme="nightrun"] .heroStamp { color: var(--color-pink); box-shadow: 0 0 10px rgba(233, 30, 99, .6); }
+.root[data-theme="nightrun"] .cdNum { color: #fff; text-shadow: 0 0 8px rgba(0, 188, 212, .8), 0 0 16px rgba(233, 30, 99, .5); }
+.root[data-theme="nightrun"] .cdCell { box-shadow: var(--shadow-pix), 0 0 14px rgba(0, 188, 212, .25); }
+.root[data-theme="nightrun"] .withheld { color: var(--color-sky); filter: blur(1px); opacity: .7; letter-spacing: .2em; }
+.neonGrid { position: absolute; inset: auto 0 0 0; height: 240px; pointer-events: none; overflow: hidden; perspective: 320px; opacity: .55; }
+.neonGridInner {
+  position: absolute; inset: -40% -20% -2% -20%; transform: rotateX(72deg);
+  background-image:
+    linear-gradient(rgba(0, 188, 212, .55) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 30, 99, .5) 1px, transparent 1px);
+  background-size: 44px 44px, 44px 44px;
+  animation: fl-grid 7s linear infinite;
+}
+@keyframes fl-grid { from { background-position: 0 0, 0 0; } to { background-position: 0 44px, 0 0; } }
+
+/* ---- reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack, .neonGridInner { animation: none; }
+}

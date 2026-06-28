@@ -54,3 +54,9 @@ sticker-assets/
 .qoder/
 .agents/
 skills-lock.json
+
+# generated sponsor logo assets (drag into dashboard, not committed)
+sponsor-logos/
+
+# throwaway flagship concept prototypes (reference only, not shipped)
+flagship-demos/

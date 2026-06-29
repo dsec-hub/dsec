@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PixelDuck } from "@/components/pixel-duck";
+import { SocialGlyph } from "@/components/social-icons";
 import { getLinkTree } from "@/lib/api";
 import {
   linkAccentAt,
@@ -177,9 +178,9 @@ export default async function LinksPage() {
                     : { target: "_blank", rel: "noopener noreferrer" })}
                   aria-label={meta.label}
                   title={meta.label}
-                  className={`pixel-hover grid h-12 w-12 place-items-center border-[3px] border-paper text-2xl leading-none ${ACCENT[meta.accent].tile}`}
+                  className={`pixel-hover grid h-12 w-12 place-items-center border-[3px] border-paper leading-none ${ACCENT[meta.accent].tile}`}
                 >
-                  <span aria-hidden="true">{meta.icon}</span>
+                  <SocialGlyph platform={key} />
                 </a>
               );
             })}

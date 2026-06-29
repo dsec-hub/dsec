@@ -524,8 +524,9 @@ export function linkAccentAt(accent: LinkAccent | null | undefined, visibleIndex
   return accent ?? LINK_ACCENT_CYCLE[visibleIndex % LINK_ACCENT_CYCLE.length];
 }
 
-/** Display order + presentation for each social platform. The label/icon/accent
- *  are used wherever socials render as a row (the /links page, footers). */
+/** Display order + presentation for each social platform. `label`/`accent` are
+ *  used wherever socials render (the /links page tiles, footers); the brand mark
+ *  itself comes from `<SocialGlyph>`. `icon` is a plain-text emoji fallback. */
 export const SOCIAL_ORDER: SocialKey[] = [
   "discord",
   "instagram",

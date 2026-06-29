@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PixelDuck } from "@/components/pixel-duck";
+import { getSocials } from "@/lib/api";
 import { site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -39,7 +40,11 @@ const perks = [
   },
 ];
 
-export default function JoinPage() {
+export default async function JoinPage() {
+  // The Discord CTAs use the API-served invite (live once the committee sets it
+  // in the hub), falling back to the configured site value otherwise.
+  const socials = await getSocials();
+  const discord = socials.discord ?? site.discord;
   return (
     <section className="mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
       <div className="grid items-stretch gap-8 md:grid-cols-[1.2fr_1fr]">
@@ -74,7 +79,7 @@ export default function JoinPage() {
               Get your membership
             </a>
             <a
-              href={site.discord}
+              href={discord}
               target="_blank"
               rel="noreferrer noopener"
               className="btn btn-void !px-7 !py-4 !text-lg"
@@ -158,7 +163,7 @@ export default function JoinPage() {
         </p>
         <div className="mt-5">
           <a
-            href={site.discord}
+            href={discord}
             target="_blank"
             rel="noreferrer noopener"
             className="btn btn-pink !px-7 !py-4 !text-lg"

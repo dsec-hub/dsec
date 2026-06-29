@@ -123,9 +123,27 @@ export function ScanGrid({ cards }: { cards: CardData[] }) {
 
   const active = activeIndex !== null ? cards[activeIndex] : null;
 
+  // Lay the wall out by card count: a single stacked column on a phone, a 2-up
+  // grid on a tablet, and one row of up to 4 across on desktop. Tailwind needs
+  // literal class names, so the per-count classes are looked up, not built.
+  const n = Math.min(cards.length, 4);
+  const lgCols: Record<number, string> = {
+    1: "lg:grid-cols-1",
+    2: "lg:grid-cols-2",
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
+  };
+  const lgMax: Record<number, string> = {
+    1: "lg:max-w-xs",
+    2: "lg:max-w-2xl",
+    3: "lg:max-w-4xl",
+    4: "lg:max-w-none",
+  };
+  const gridClass = `mx-auto grid w-full max-w-sm grid-cols-1 gap-3 sm:max-w-xl sm:grid-cols-2 sm:gap-4 ${lgMax[n] ?? "lg:max-w-none"} ${lgCols[n] ?? "lg:grid-cols-4"}`;
+
   return (
     <>
-      <div className="mx-auto grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4 lg:max-w-none lg:grid-cols-4">
+      <div className={gridClass}>
         {cards.map(({ target, svg }, i) => (
           <QrCard
             key={target.label}

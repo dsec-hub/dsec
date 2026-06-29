@@ -1,14 +1,42 @@
 import Link from "next/link";
-import { site } from "@/lib/content";
+import {
+  site,
+  socialHref,
+  SOCIAL_META,
+  type SocialKey,
+  type Socials,
+} from "@/lib/content";
+import type { NavEntry } from "@/lib/pages";
 
-const footerLinks = [
-  { href: `mailto:${site.email}`, label: site.email, external: true },
-  { href: site.discord, label: "Discord", external: true },
-  { href: site.github, label: "GitHub", external: true },
-  { href: site.linkedin, label: "LinkedIn", external: true },
+// "Connect" column order — email first (the primary contact), then platforms.
+const FOOTER_SOCIAL_ORDER: SocialKey[] = [
+  "email",
+  "discord",
+  "instagram",
+  "linkedin",
+  "github",
 ];
 
-export function SiteFooter() {
+/**
+ * The footer. The "Connect" column is built from the club's API-served socials
+ * (`socials`, resolved upstream with the site.* fallback) so a handle is changed
+ * in one place. Any committee-published custom pages (nav_area = "footer") are
+ * appended to the "Site" column. Both props default to empty so the footer still
+ * renders if nothing is wired.
+ */
+export function SiteFooter({
+  extra = [],
+  socials = {},
+}: {
+  extra?: NavEntry[];
+  socials?: Socials;
+}) {
+  const connect = FOOTER_SOCIAL_ORDER.filter((k) => socials[k]).map((k) => ({
+    href: socialHref(k, socials[k] as string),
+    // Email shows the address; the rest show the platform name.
+    label: k === "email" ? (socials[k] as string) : SOCIAL_META[k].label,
+    external: k !== "email",
+  }));
   return (
     <footer className="mt-auto border-t-[3px] border-paper bg-void text-paper">
       <div className="h-3 stripes opacity-90" />
@@ -48,11 +76,20 @@ export function SiteFooter() {
           <Link href="/contact" className="slide-link text-sm hover:text-yellow">
             Contact
           </Link>
+          {extra.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="slide-link text-sm hover:text-yellow"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <nav className="flex flex-col gap-2">
           <p className="eyebrow !text-paper/50">Connect</p>
-          {footerLinks.map((l) => (
+          {connect.map((l) => (
             <a
               key={l.label}
               href={l.href}
@@ -68,7 +105,7 @@ export function SiteFooter() {
 
       <div className="border-t border-paper/15">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 font-mono text-xs text-paper/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>© {new Date().getFullYear()} DSEC · admin@dsec.club</span>
+          <span>© {new Date().getFullYear()} DSEC · {socials.email ?? site.email}</span>
           <span>Built in public. Sponsorship invoiced via DUSA (+GST).</span>
         </div>
       </div>

@@ -5,10 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { nav, site } from "@/lib/content";
+import type { NavEntry } from "@/lib/pages";
 
-export function SiteHeader() {
+/**
+ * The static site nav, with any committee-published custom pages (nav_area =
+ * "header") appended AFTER it. `extra` defaults to `[]`, so the header renders
+ * exactly as before when there are no published pages.
+ */
+export function SiteHeader({ extra = [] }: { extra?: NavEntry[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const items: NavEntry[] = [...nav, ...extra];
 
   return (
     <header className="sticky top-0 z-50 border-b-[3px] border-paper bg-panel/95 backdrop-blur">
@@ -27,7 +34,7 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-3 md:flex lg:gap-4">
-          {nav.map((item) => {
+          {items.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
@@ -65,7 +72,7 @@ export function SiteHeader() {
       {open && (
         <div className="menu-drop border-t-[3px] border-paper bg-panel md:hidden">
           <nav className="stagger mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4">
-            {nav.map((item) => (
+            {items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

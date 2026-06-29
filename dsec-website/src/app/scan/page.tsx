@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { site } from "@/lib/content";
+import { getScanWall, getSocials } from "@/lib/api";
+import { DEFAULT_SCAN_PAGE, site } from "@/lib/content";
 import { qrSvg } from "@/lib/qr";
 import { ScanGrid, type ScanTarget } from "./scan-client";
 
@@ -17,41 +18,44 @@ export const metadata: Metadata = {
   },
 };
 
-const targets: ScanTarget[] = [
-  {
-    label: "Website",
-    caption: "See what we're building",
-    href: "https://dsec.club",
-    pretty: "dsec.club",
-    accent: "blue",
-  },
-  {
-    label: "Instagram",
-    caption: "Photos from every event",
-    href: site.instagram,
-    pretty: "@dsec",
-    accent: "pink",
-  },
-  {
-    label: "Discord",
-    caption: "Where it all actually happens",
-    href: site.discord,
-    pretty: "the DSEC server",
-    accent: "mint",
-  },
-  {
-    label: "Join the club",
-    caption: "One click, no application",
-    href: "https://dsec.club/join",
-    pretty: "dsec.club/join",
-    accent: "yellow",
-  },
-];
-
 export default async function ScanPage() {
-  // Generated once at build time - static, no runtime/network dependency.
+  // The wall is committee-curated via dsec-hub: an editable heading (title +
+  // description) plus the visible QR cards from the API. We then auto-append the
+  // club's Instagram + Discord from the socials feed (single source of truth) so
+  // those handles never drift and never need re-entering here. If the API is
+  // unreachable, the heading falls back to its default copy and only the socials
+  // cards show.
+  const [wall, socials] = await Promise.all([getScanWall(), getSocials()]);
+
+  const title = wall?.title ?? DEFAULT_SCAN_PAGE.title;
+  const description = wall?.description ?? DEFAULT_SCAN_PAGE.description;
+  const targets = wall?.cards ?? [];
+
+  const have = new Set(targets.map((t) => t.label.toLowerCase()));
+  const autoCards: ScanTarget[] = [];
+  if (socials.instagram && !have.has("instagram")) {
+    autoCards.push({
+      label: "Instagram",
+      caption: "Photos from every event",
+      href: socials.instagram,
+      pretty: "@dsec",
+      accent: "pink",
+    });
+  }
+  if (socials.discord && !have.has("discord")) {
+    autoCards.push({
+      label: "Discord",
+      caption: "Where it all actually happens",
+      href: socials.discord,
+      pretty: "the DSEC server",
+      accent: "mint",
+    });
+  }
+  const allTargets = [...targets, ...autoCards];
+
+  // Generated per request but cached with the feeds - effectively static.
   const cards = await Promise.all(
-    targets.map(async (target) => ({ target, svg: await qrSvg(target.href) })),
+    allTargets.map(async (target) => ({ target, svg: await qrSvg(target.href) })),
   );
 
   return (
@@ -97,12 +101,10 @@ export default async function ScanPage() {
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-12 text-center sm:px-6 sm:py-16">
         <p className="eyebrow">Scan to connect · DSEC</p>
         <h1 className="mx-auto mt-3 max-w-3xl font-display text-3xl font-bold leading-tight text-3d sm:text-5xl">
-          Point your camera.{" "}
-          <span className="text-yellow">You&apos;re basically in.</span>
+          {title}
         </h1>
         <p className="mx-auto mt-4 max-w-md text-base text-paper/70">
-          DSEC is Deakin&apos;s project-led software club. Scan any code below.
-          No app to install, just your phone.
+          {description}
         </p>
 
         <div className="mt-10">

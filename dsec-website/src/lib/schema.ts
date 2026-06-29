@@ -3,19 +3,25 @@
  * - the single highest-value SEO play for a name-search club. Event can surface
  * event rich results. Absolute URLs throughout (Google requires them).
  */
-import { site, events, type ClubEvent } from "@/lib/content";
+import { site, events, type ClubEvent, type Socials } from "@/lib/content";
 
 const BASE = "https://dsec.club";
 
 /** Real, public social profiles only - placeholders are filtered out so we
- *  never publish a dead sameAs link. */
-function sameAs(): string[] {
+ *  never publish a dead sameAs link. When the resolved API socials are passed
+ *  (already placeholder-filtered) they win; otherwise fall back to site.*. */
+function sameAs(socials?: Socials): string[] {
+  if (socials) {
+    return [socials.github, socials.discord, socials.linkedin, socials.instagram].filter(
+      (url): url is string => !!url,
+    );
+  }
   return [site.github, site.discord, site.linkedin].filter(
     (url) => url && !url.includes("REPLACE"),
   );
 }
 
-export function organizationSchema() {
+export function organizationSchema(socials?: Socials) {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -24,10 +30,10 @@ export function organizationSchema() {
     alternateName: site.name,
     url: BASE,
     logo: `${BASE}/icon.png`,
-    email: site.email,
+    email: socials?.email ?? site.email,
     description:
       "A project-led student software club at Deakin University, Burwood. Members build real, portfolio-worthy software.",
-    sameAs: sameAs(),
+    sameAs: sameAs(socials),
     location: {
       "@type": "Place",
       name: "Deakin University - Burwood Campus",

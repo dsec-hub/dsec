@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteChrome } from "@/components/site-chrome";
 import { PageTransition } from "@/components/page-transition";
+import { getNavPages, getSocials } from "@/lib/api";
 
 // Silkscreen: a chunky, blocky bitmap face. Reads clearly at large display
 // sizes (Pixelify Sans was too thin/illegible when small), so we lean into it
@@ -57,11 +58,15 @@ export const metadata: Metadata = {
     : {}),
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Committee-published custom pages that opted into the nav, split by area.
+  // Empty arrays when there's no live feed, so the chrome renders unchanged.
+  // Socials feed the footer's "Connect" column (one source of truth).
+  const [navPages, socials] = await Promise.all([getNavPages(), getSocials()]);
   return (
     <html
       lang="en-AU"
@@ -78,13 +83,13 @@ export default function RootLayout({
         </a>
         {/* Chrome is hidden on the standalone /links page (see SiteChrome). */}
         <SiteChrome>
-          <SiteHeader />
+          <SiteHeader extra={navPages.header} />
         </SiteChrome>
         <main id="main" className="flex-1">
           <PageTransition>{children}</PageTransition>
         </main>
         <SiteChrome>
-          <SiteFooter />
+          <SiteFooter extra={navPages.footer} socials={socials} />
         </SiteChrome>
       </body>
     </html>

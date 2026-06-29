@@ -16,12 +16,14 @@ import {
   normalizeLinkAccent,
   projects as placeholderProjects,
   resolveMascot,
+  resolveSocials,
   team as placeholderTeam,
   tiers as placeholderTiers,
   type ClubEvent,
   type Lead,
   type LinkItem,
   type LinkTree,
+  type Socials,
   type MediaItem,
   type Member,
   type MemberDetail,
@@ -31,7 +33,13 @@ import {
   type SponsorBrand,
   type Tier,
 } from "@/lib/content";
+import type { ScanTarget } from "@/app/scan/scan-client";
+
+/** The 4 light scan accents (matches scan-client's local `Accent`). */
+type ScanCardAccent = "blue" | "pink" | "yellow" | "mint";
 import type { DuckName } from "@/components/pixel-duck";
+import { parsePageDoc } from "@/lib/page-blocks";
+import type { CustomPage, NavEntry, PageSummary } from "@/lib/pages";
 
 const ACCENTS = ["blue", "pink", "yellow", "mint"] as const;
 const PROJECT_DUCKS: DuckName[] = ["icon-controller", "icon-cursor", "icon-floppy", "icon-star"];
@@ -628,10 +636,19 @@ export type ApiLink = {
   display_order: number;
 };
 
+export type ApiSocials = {
+  instagram: string | null;
+  discord: string | null;
+  linkedin: string | null;
+  github: string | null;
+  email: string | null;
+};
+
 export type ApiLinkProfile = {
   title: string;
   tagline: string | null;
   mascot: string | null;
+  socials?: ApiSocials | null;
 };
 
 type ApiLinkTree = {
@@ -661,6 +678,175 @@ export async function getLinkTree(): Promise<LinkTree | null> {
       tagline: data.profile?.tagline ?? undefined,
       mascot: resolveMascot(data.profile?.mascot),
     },
+    // Live socials win; fall back to the real site.* values for any unset one.
+    socials: resolveSocials(data.profile?.socials ?? undefined),
     links,
+  };
+}
+
+/**
+ * The club's resolved socials (the single source for the footers, contact, scan
+ * and join). Reads the same cached `/website/linktree` feed and merges the live
+ * values with the hardcoded `site.*` fallback (placeholder/empty values dropped),
+ * so callers always get whatever real handles exist — even if the feed is down.
+ */
+export async function getSocials(): Promise<Socials> {
+  const tree = await getLinkTree();
+  return tree?.socials ?? resolveSocials(undefined);
+}
+
+// ---------------------------------------------------------------------------
+// Scan wall (/scan) — the committee-curated QR cards for big-screen display.
+// ---------------------------------------------------------------------------
+
+export type ApiScanTarget = {
+  label: string;
+  caption: string | null;
+  url: string;
+  pretty: string | null;
+  accent: string | null;
+  display_order: number;
+};
+
+type ApiScanWall = {
+  title: string;
+  description: string;
+  targets: ApiScanTarget[];
+};
+
+/** The /scan wall as the page consumes it: the editable heading (already
+ *  defaulted by the API) plus the cards mapped onto scan-client's ScanTarget. */
+export type ScanWall = { title: string; description: string; cards: ScanTarget[] };
+
+/** The 4 light scan accents, cycled by position when a card leaves accent on
+ *  "auto". Matches dsec-hub's SCAN_ACCENTS + the API's SCAN_ACCENTS. */
+const SCAN_ACCENT_CYCLE = ["blue", "pink", "yellow", "mint"] as const;
+
+function normalizeScanAccent(accent: string | null, index: number): ScanCardAccent {
+  if (accent && (SCAN_ACCENT_CYCLE as readonly string[]).includes(accent)) {
+    return accent as ScanCardAccent;
+  }
+  return SCAN_ACCENT_CYCLE[index % SCAN_ACCENT_CYCLE.length];
+}
+
+/**
+ * The public /scan wall from the dsec-api feed (`/website/scan`): the editable
+ * heading (title + description, already defaulted server-side) plus the visible
+ * QR cards in display order, mapped onto the page's ScanTarget shape (accent
+ * resolved, nulls → ""). Returns `null` on any failure (unset DSEC_API_URL, bad
+ * status) so the page falls back to its default heading + the auto socials cards.
+ */
+export async function getScanWall(): Promise<ScanWall | null> {
+  const data = await fetchJson<ApiScanWall>("/website/scan", ["scan"]);
+  if (!data) return null;
+  return {
+    title: data.title,
+    description: data.description,
+    cards: (data.targets ?? []).map((t, i) => ({
+      label: t.label,
+      caption: t.caption ?? "",
+      href: t.url,
+      pretty: t.pretty ?? "",
+      accent: normalizeScanAccent(t.accent, i),
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Custom pages (/[slug]) — committee-authored marketing pages.
+// ---------------------------------------------------------------------------
+
+type ApiPageSummary = {
+  slug: string;
+  title: string;
+  nav_label: string | null;
+  show_in_nav: boolean;
+  nav_area: string | null;
+  nav_order: number | null;
+  seo_description: string | null;
+  cover_image: string | null;
+  updated_at: string | null;
+};
+
+type ApiPage = ApiPageSummary & { blocks?: unknown };
+
+function mapPageSummary(p: ApiPageSummary): PageSummary {
+  return {
+    slug: p.slug,
+    title: p.title,
+    navLabel: p.nav_label ?? undefined,
+    showInNav: !!p.show_in_nav,
+    navArea: p.nav_area === "footer" ? "footer" : "header",
+    navOrder: p.nav_order ?? 0,
+    seoDescription: p.seo_description ?? undefined,
+    coverImage: p.cover_image ?? undefined,
+    updatedAt: p.updated_at ?? undefined,
+  };
+}
+
+/** Map a full API page onto the local shape, defensively parsing its block body
+ *  through the shared `parsePageDoc` (drops unknown block types, guarantees ids,
+ *  never throws → a corrupt payload yields an empty page rather than a crash). */
+function mapPage(p: ApiPage): CustomPage {
+  return { ...mapPageSummary(p), blocks: parsePageDoc(p.blocks).blocks };
+}
+
+/**
+ * Every published page (is_public + slug), ordered by the API (nav_order, title).
+ * Drives `generateStaticParams`, the nav and the sitemap. Returns `[]` on any
+ * failure (unset `DSEC_API_URL`, bad status) so the build prebuilds nothing and
+ * the site renders unchanged when there's no live feed.
+ */
+export async function getPages(): Promise<PageSummary[]> {
+  const rows = await fetchJson<ApiPageSummary[]>("/website/pages", ["pages"]);
+  if (!rows) return [];
+  return rows.filter((p) => p.slug).map(mapPageSummary);
+}
+
+/** One published page by slug, with its block body. `null` when missing/unreachable. */
+export async function getPage(slug: string): Promise<CustomPage | null> {
+  const row = await fetchJson<ApiPage>(`/website/pages/${encodeURIComponent(slug)}`, ["pages"]);
+  return row ? mapPage(row) : null;
+}
+
+/**
+ * One page by a signed committee preview token (`/pages/preview/[token]`). Hits
+ * the token-gated feed that also serves DRAFTS, is NEVER cached (`no-store`), and
+ * has no fallback: an invalid/expired token or unreachable API returns `null` so
+ * the page 404s. Returns `null` when `DSEC_API_URL` is unset.
+ */
+export async function getPagePreview(token: string): Promise<CustomPage | null> {
+  const base = apiBase();
+  if (!base) return null;
+  try {
+    const res = await fetch(
+      `${base}/website/pages/preview/${encodeURIComponent(token)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return mapPage((await res.json()) as ApiPage);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The published pages that opted into the nav, split by area and sorted by
+ * `navOrder` then title, mapped to renderable `{ href, label }` entries. The site
+ * chrome appends these AFTER its static nav. Empty arrays when there's no feed,
+ * so the header/footer render unchanged.
+ */
+export async function getNavPages(): Promise<{ header: NavEntry[]; footer: NavEntry[] }> {
+  const pages = await getPages();
+  const sort = (a: PageSummary, b: PageSummary) =>
+    a.navOrder - b.navOrder || a.title.localeCompare(b.title);
+  const toEntry = (p: PageSummary): NavEntry => ({
+    href: `/${p.slug}`,
+    label: p.navLabel || p.title,
+  });
+  const inNav = pages.filter((p) => p.showInNav);
+  return {
+    header: inNav.filter((p) => p.navArea === "header").sort(sort).map(toEntry),
+    footer: inNav.filter((p) => p.navArea === "footer").sort(sort).map(toEntry),
   };
 }

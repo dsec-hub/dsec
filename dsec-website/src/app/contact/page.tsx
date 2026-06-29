@@ -5,7 +5,8 @@ import { ContactForm } from "@/components/contact-form";
 import { PixelDuck } from "@/components/pixel-duck";
 import { JsonLd } from "@/components/json-ld";
 import { organizationSchema } from "@/lib/schema";
-import { site } from "@/lib/content";
+import { getSocials } from "@/lib/api";
+import { socialHref, type SocialKey } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Contact DSEC - Get in Touch",
@@ -26,41 +27,56 @@ export const metadata: Metadata = {
   },
 };
 
-const channels = [
-  {
+// Editorial copy per channel. The actual URLs come from the API-served socials,
+// so a handle changes in one place; a channel only renders when its social is
+// set. `label` is overridden by the live address for email.
+const CONTACT_ORDER: SocialKey[] = ["email", "discord", "instagram", "linkedin"];
+const CONTACT_COPY: Record<
+  "email" | "discord" | "instagram" | "linkedin",
+  { h: string; p: string; label: string; accent: string }
+> = {
+  email: {
     h: "Email",
     p: "Best for membership questions, partnerships and anything official.",
-    label: site.email,
-    href: `mailto:${site.email}`,
+    label: "",
     accent: "bg-pink",
   },
-  {
+  discord: {
     h: "Discord",
     p: "Where the club actually lives. Say hi, find a team, start shipping.",
     label: "Join the server",
-    href: site.discord,
     accent: "bg-blue",
   },
-  {
+  instagram: {
     h: "Instagram",
     p: "Event announcements, photos and what we are up to this term.",
     label: "Follow us",
-    href: site.instagram,
     accent: "bg-yellow",
   },
-  {
+  linkedin: {
     h: "LinkedIn",
     p: "For companies and alumni who want to keep in touch.",
     label: "Connect",
-    href: site.linkedin,
     accent: "bg-mint",
   },
-];
+};
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const socials = await getSocials();
+  const channels = CONTACT_ORDER.filter((k) => socials[k]).map((k) => {
+    const copy = CONTACT_COPY[k as keyof typeof CONTACT_COPY];
+    const value = socials[k] as string;
+    return {
+      ...copy,
+      // Email shows the address itself as its call-to-action label.
+      label: k === "email" ? value : copy.label,
+      href: socialHref(k, value),
+    };
+  });
+
   return (
     <div>
-      <JsonLd data={organizationSchema()} />
+      <JsonLd data={organizationSchema(socials)} />
       <section className="border-b-[3px] border-paper bg-panel-2">
         <div className="mx-auto grid max-w-6xl items-stretch gap-8 px-4 py-14 sm:px-6 md:grid-cols-2">
           <div className="flex flex-col justify-center">

@@ -489,8 +489,19 @@ export type LinkProfile = {
   mascot: DuckName;
 };
 
+/** The club's canonical socials — the single set served by dsec-api and used by
+ *  every surface (the /links page, the site + portal footers, contact/scan/join).
+ *  `email` is a bare address; the rest are absolute http(s) profile URLs. */
+export type SocialKey = "instagram" | "discord" | "linkedin" | "github" | "email";
+
+/** Resolved socials: only the platforms that actually have a (non-placeholder)
+ *  value are present, so consumers can map over the keys and render exactly the
+ *  ones the committee has set. */
+export type Socials = Partial<Record<SocialKey, string>>;
+
 export type LinkTree = {
   profile: LinkProfile;
+  socials: Socials;
   links: LinkItem[];
 };
 
@@ -513,6 +524,57 @@ export function linkAccentAt(accent: LinkAccent | null | undefined, visibleIndex
   return accent ?? LINK_ACCENT_CYCLE[visibleIndex % LINK_ACCENT_CYCLE.length];
 }
 
+/** Display order + presentation for each social platform. The label/icon/accent
+ *  are used wherever socials render as a row (the /links page, footers). */
+export const SOCIAL_ORDER: SocialKey[] = [
+  "discord",
+  "instagram",
+  "linkedin",
+  "github",
+  "email",
+];
+
+export const SOCIAL_META: Record<SocialKey, { label: string; icon: string; accent: LinkAccent }> = {
+  discord: { label: "Discord", icon: "💬", accent: "violet" },
+  instagram: { label: "Instagram", icon: "📸", accent: "pink" },
+  linkedin: { label: "LinkedIn", icon: "💼", accent: "sky" },
+  github: { label: "GitHub", icon: "🐙", accent: "blue" },
+  email: { label: "Email", icon: "✉️", accent: "yellow" },
+};
+
+/** Hardcoded fallback socials, read from the real `site.*` values. Used only
+ *  when the dsec-api feed is unset/down or hasn't had a social set yet, so the
+ *  footers/contact/scan still show whatever real handles we have. Placeholder
+ *  (…REPLACE) and empty values are dropped by `resolveSocials`. */
+const FALLBACK_SOCIALS: Record<SocialKey, string> = {
+  discord: site.discord,
+  instagram: site.instagram,
+  linkedin: site.linkedin,
+  github: site.github,
+  email: site.email,
+};
+
+/** Merge the live API socials with the hardcoded fallback, dropping any empty or
+ *  still-"REPLACE" placeholder value. The API wins when it has a real value, so
+ *  the committee can override everything from dsec-hub. Returns only the present
+ *  platforms, in display order. */
+export function resolveSocials(
+  api: Partial<Record<SocialKey, string | null>> | undefined,
+): Socials {
+  const out: Socials = {};
+  for (const key of SOCIAL_ORDER) {
+    const live = (api?.[key] ?? "").trim();
+    const value = live || FALLBACK_SOCIALS[key] || "";
+    if (value && !value.includes("REPLACE")) out[key] = value;
+  }
+  return out;
+}
+
+/** The href for a social: `email` becomes a mailto:, the rest pass through. */
+export function socialHref(key: SocialKey, value: string): string {
+  return key === "email" ? `mailto:${value}` : value;
+}
+
 /**
  * Hardcoded fallback link tree, built from the real `site.*` social values. The
  * /links page renders this when the dsec-api feed is unset/down, so the page is
@@ -524,6 +586,7 @@ export const linktree: LinkTree = {
     tagline: site.longName,
     mascot: "duck-wave",
   },
+  socials: resolveSocials(undefined),
   links: ([
     {
       title: "Join the Discord",
@@ -565,5 +628,20 @@ export const linktree: LinkTree = {
     // (or manage the link tree via dsec-hub once the feed is live) and these links
     // reappear automatically.
   ] satisfies LinkItem[]).filter((link) => !link.url.includes("REPLACE")),
+};
+
+// ---------------------------------------------------------------------------
+// Scan wall (/scan) — the big-screen QR wall editable by committee. The card +
+// accent types live in lib/api.ts (mapped onto scan-client's ScanTarget); this
+// only holds the heading default shared with the feed.
+// ---------------------------------------------------------------------------
+
+/** The default /scan heading, used when the API feed is unreachable (the live
+ *  feed otherwise supplies title/description, defaulted server-side). Mirrors the
+ *  dsec-api scan service DEFAULT_PAGE_* + dsec-hub's DEFAULT_SCAN_PAGE. */
+export const DEFAULT_SCAN_PAGE = {
+  title: "Point your camera. You're in.",
+  description:
+    "Scan a code below to connect with DSEC. No app to install, just your phone.",
 };
 

@@ -1,13 +1,17 @@
 import type { MetadataRoute } from "next";
 
+import { getPages } from "@/lib/api";
+
 const BASE = "https://dsec.club";
 
 /**
- * Static sitemap for DSEC's public routes. The /heroes page is a dev-only
- * hero picker and is intentionally excluded (also disallowed in robots).
- * Submit this in Google Search Console so branded queries index fast (§2.3).
+ * Sitemap for DSEC's public routes. The /heroes page is a dev-only hero picker
+ * and is intentionally excluded (also disallowed in robots). Committee-published
+ * custom pages (`dsec.club/<slug>`) are appended from the live feed; the list is
+ * just the static routes when the feed is unset/unreachable. Submit this in
+ * Google Search Console so branded queries index fast (§2.3).
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
   const routes: Array<{ path: string; priority: number }> = [
     { path: "/", priority: 1 },
@@ -20,10 +24,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/scan", priority: 0.5 },
   ];
 
-  return routes.map(({ path, priority }) => ({
+  const staticEntries: MetadataRoute.Sitemap = routes.map(({ path, priority }) => ({
     url: `${BASE}${path}`,
     lastModified,
     changeFrequency: "weekly",
     priority,
   }));
+
+  const pages = await getPages();
+  const pageEntries: MetadataRoute.Sitemap = pages.map((p) => ({
+    url: `${BASE}/${p.slug}`,
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : lastModified,
+    changeFrequency: "weekly",
+    priority: 0.5,
+  }));
+
+  return [...staticEntries, ...pageEntries];
 }

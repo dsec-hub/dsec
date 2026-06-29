@@ -5,8 +5,12 @@ import { getLinkTree } from "@/lib/api";
 import {
   linkAccentAt,
   linktree as fallbackLinkTree,
+  socialHref,
+  SOCIAL_META,
+  SOCIAL_ORDER,
   type LinkAccent,
   type LinkItem,
+  type SocialKey,
 } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -141,6 +145,13 @@ export default async function LinksPage() {
   const tree = await getLinkTree();
   const profile = tree?.profile ?? fallbackLinkTree.profile;
   const links = tree && tree.links.length ? tree.links : fallbackLinkTree.links;
+  // Socials are pulled in by default — the committee sets them once on the link
+  // profile, and they head up the page as a row of icons above the link stack.
+  const socials = tree?.socials ?? fallbackLinkTree.socials;
+  const socialEntries = SOCIAL_ORDER.filter((k) => socials[k]).map((k) => ({
+    key: k as SocialKey,
+    href: socialHref(k, socials[k] as string),
+  }));
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 py-10 sm:py-14">
@@ -151,6 +162,28 @@ export default async function LinksPage() {
         </h1>
         {profile.tagline && (
           <p className="mt-2 font-mono text-sm text-paper/70">{profile.tagline}</p>
+        )}
+        {socialEntries.length > 0 && (
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            {socialEntries.map(({ key, href }) => {
+              const meta = SOCIAL_META[key];
+              const isMail = key === "email";
+              return (
+                <a
+                  key={key}
+                  href={href}
+                  {...(isMail
+                    ? {}
+                    : { target: "_blank", rel: "noopener noreferrer" })}
+                  aria-label={meta.label}
+                  title={meta.label}
+                  className={`pixel-hover grid h-12 w-12 place-items-center border-[3px] border-paper text-2xl leading-none ${ACCENT[meta.accent].tile}`}
+                >
+                  <span aria-hidden="true">{meta.icon}</span>
+                </a>
+              );
+            })}
+          </div>
         )}
       </header>
 
